@@ -10,7 +10,7 @@ English | [中文](https://github.com/libsgh/chrome_updater/blob/main/README_ZH.
 - [x] Portable Chrome version check and update.
 - [x] Chrome++ update.
 
-## 使用说明
+## Instructions for use
 1. Place the program in the **App** directory or manually specify the **App** folder. Chrome will initialize the installation if it is not detected.
 2. Configuration path：`C:\Users\%USERNAME%\AppData\Roaming\chrome_updater\config.json`.
 3. Some APIs rely on GitHub services. If you encounter network problems, you can set up a Github proxy.
