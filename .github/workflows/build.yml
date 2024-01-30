@@ -1,0 +1,52 @@
+name: Build Release
+on:
+  release:
+    types: [created]
+jobs:
+  Build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.21.x']
+        os: [ubuntu-latest]
+        arch: ['amd64', '386']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Setup Env
+        run: >-
+          sudo apt-get update &&
+          sudo apt-get install
+          bc
+          gcc
+          libgl1-mesa-dev
+          libwayland-dev
+          libx11-dev
+          libxkbcommon-dev
+          xorg-dev
+          xvfb
+      - name: Setup fyne
+        run: go install github.com/fyne-io/fyne-cross@latest
+      - name: Install UPX
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          install-only: true
+      - name: Package
+        run: fyne-cross windows -arch=${{ matrix.arch }}
+      - name: Compress
+        run: |
+            mkdir ${GITHUB_WORKSPACE}/dist
+            unzip ${GITHUB_WORKSPACE}/fyne-cross/dist/windows-${{ matrix.arch }}/chrome_updater.exe.zip -d ${GITHUB_WORKSPACE}/fyne-cross/dist/windows-${{ matrix.arch }}
+            mv -f ${GITHUB_WORKSPACE}/fyne-cross/dist/windows-${{ matrix.arch }}/chrome_updater.exe ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
+            upx -9 ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
+            zip -rj ${GITHUB_WORKSPACE}/dist/chrome_updater-windows-${{ matrix.arch }}.zip ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/chrome_updater-windows-${{ matrix.arch }}.zip
