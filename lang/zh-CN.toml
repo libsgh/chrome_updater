@@ -47,5 +47,5 @@ ThemeDarkOption = "Dark"
 BaseRemainInstallFiles = "保留安装文件"
 BaseRemainHistoryFiles = "保留历史版本"
 UpdaterCheckBtnLabel = "有更新"
-BaseGhProxy = "Github代理, 为空将直连"
+BaseGhProxy = "GitHub代理, 为空将直连"
 
