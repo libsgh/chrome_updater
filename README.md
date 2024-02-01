@@ -1,5 +1,4 @@
 # chrome_updater
----
 
 English | [中文](https://github.com/libsgh/chrome_updater/blob/main/README_ZH.md)
 
