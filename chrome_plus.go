@@ -48,7 +48,7 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	})
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
 		githubReleaseMap, versionList = getChromePlusInfo(getString(data.ghProxy))
-		if githubReleaseMap != nil {
+		if githubReleaseMap != nil && len(versionList) > 0 {
 			versionSelect.SetOptions(versionList)
 			versionSelect.SetSelected(versionList[0])
 			setPlusVer(data, versionList[0], githubReleaseMap)
@@ -143,7 +143,7 @@ func getChromePlusInfo(ghProxy string) (map[string]GithubRelease, []string) {
 	var githubReleases []GithubRelease
 	jsoniter.UnmarshalFromString(string(data), &githubReleases)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 	result := make(map[string]GithubRelease)
 	versionList := make([]string, 0)

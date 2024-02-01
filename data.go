@@ -131,7 +131,7 @@ func createSettings() *SettingsData {
 	plusProcessStatus := binding.NewBool()
 	plusProcessStatus.Set(false)
 	ghProxy := binding.NewString()
-	ghProxy.Set("https://ghps.cc/")
+	ghProxy.Set("")
 	return &SettingsData{
 		installPath:               installPath,
 		oldVer:                    oldVer,
