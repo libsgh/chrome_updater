@@ -13,7 +13,7 @@ English | [中文](https://github.com/libsgh/chrome_updater/blob/main/README_ZH.
 ## Instructions for use
 1. Place the program in the **App** directory or manually specify the **App** folder. Chrome will initialize the installation if it is not detected.
 2. Configuration path：`C:\Users\%USERNAME%\AppData\Roaming\chrome_updater\config.json`.
-3. Some APIs rely on GitHub services. If you encounter network problems, you can set up a Github proxy.
+3. Some APIs rely on GitHub services. If you encounter network problems, you can set up a GitHub proxy.
 4. Both Chrome and Chrome++ can be updated independently without affecting each other.
 
 ## Links
