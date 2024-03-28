@@ -16,7 +16,7 @@
 4. Chrome及Chrome++均可单独更新，互不影响。
 
 ## 链接
-- [Chrome离线包](https://chrome.noki.eu.org "https://chrome.noki.eu.org")
+- [Chrome离线包](https://chrome.noki.icu "https://chrome.noki.icu")
 - [Chrome ++](https://github.com/Bush2021/chrome_plus "https://github.com/Bush2021/chrome_plus")
 
 ## 鸣谢

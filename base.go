@@ -255,7 +255,7 @@ func getVk(branch binding.String, sysInfo SysInfo) string {
 // 获取Chrome版本信息
 func getChromeInfo(key string) ChromeInfo {
 	// 发送 HTTP 请求获取 JSON 数据
-	response, err := http.Get("https://chrome.noki.eu.org/api/c/info")
+	response, err := http.Get("https://chrome.noki.icu/api/c/info")
 	if err != nil {
 		log.Fatal(err)
 	}
