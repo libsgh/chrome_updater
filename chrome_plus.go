@@ -101,7 +101,7 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 func setPlusVer(data *SettingsData, ver string, releaseMap map[string]GithubRelease) {
 	plusInfo := releaseMap[ver]
 	data.curPlusVer.Set(plusInfo.TagName)
-	data.plusDownloadUrl.Set(plusInfo.Assets[0].BrowserDownloadURL)
+	data.plusDownloadUrl.Set(pathJoin(getString(data.ghProxy), plusInfo.Assets[0].BrowserDownloadURL))
 }
 
 var (
