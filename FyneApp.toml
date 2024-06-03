@@ -1,7 +1,8 @@
-Website = "https://chrome.noki.icu"
+Website = "https://chrome.noki.eu.org"
 
 [Details]
   Icon = "assets/img/chrome.ico"
   Name = "chrome_updater"
   ID = "com.github.libs.chrome"
   Version = "1.3"
+a

@@ -16,7 +16,7 @@ English | [中文](https://github.com/libsgh/chrome_updater/blob/main/README_ZH.
 4. Both Chrome and Chrome++ can be updated independently without affecting each other.
 
 ## Links
-- [Web Service](https://chrome.noki.icu "https://chrome.noki.icu")
+- [Web Service](https://chrome.noki.eu.org "https://chrome.noki.eu.org")
 - [Chrome ++](https://github.com/Bush2021/chrome_plus "https://github.com/Bush2021/chrome_plus")
 
 ## Thanks

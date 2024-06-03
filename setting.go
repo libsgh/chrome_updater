@@ -68,7 +68,7 @@ func settingsScreen(a fyne.App, win fyne.Window, data *SettingsData) fyne.Canvas
 			}),
 		),
 		container.NewHBox(
-			widget.NewHyperlink(LoadString("OfflinePkgLabel"), parseURL("https://chrome.noki.icu")),
+			widget.NewHyperlink(LoadString("OfflinePkgLabel"), parseURL("https://chrome.noki.eu.org")),
 			widget.NewLabel("-"),
 			widget.NewHyperlink("GitHub", parseURL("https://github.com/libsgh/chrome_updater")),
 			widget.NewLabel("-"),
