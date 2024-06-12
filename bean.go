@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/xml"
 	"fyne.io/fyne/v2/data/binding"
 	"time"
 )
@@ -94,4 +95,70 @@ type GithubRelease struct {
 
 type TestText struct {
 	Label string
+}
+
+// Chrome更新查询
+type Response struct {
+	XMLName  xml.Name `xml:"response"`
+	Text     string   `xml:",chardata"`
+	Protocol string   `xml:"protocol,attr"`
+	Server   string   `xml:"server,attr"`
+	Daystart struct {
+		Text           string `xml:",chardata"`
+		ElapsedDays    string `xml:"elapsed_days,attr"`
+		ElapsedSeconds string `xml:"elapsed_seconds,attr"`
+	} `xml:"daystart"`
+	App struct {
+		Text        string `xml:",chardata"`
+		Appid       string `xml:"appid,attr"`
+		Cohort      string `xml:"cohort,attr"`
+		Cohortname  string `xml:"cohortname,attr"`
+		Status      string `xml:"status,attr"`
+		Updatecheck struct {
+			Text   string `xml:",chardata"`
+			Status string `xml:"status,attr"`
+			Urls   struct {
+				Text string `xml:",chardata"`
+				URL  []struct {
+					Text     string `xml:",chardata"`
+					Codebase string `xml:"codebase,attr"`
+				} `xml:"url"`
+			} `xml:"urls"`
+			Manifest struct {
+				Text    string `xml:",chardata"`
+				Version string `xml:"version,attr"`
+				Actions struct {
+					Text   string `xml:",chardata"`
+					Action []struct {
+						Text      string `xml:",chardata"`
+						Arguments string `xml:"arguments,attr"`
+						Event     string `xml:"event,attr"`
+						Run       string `xml:"run,attr"`
+						Version   string `xml:"Version,attr"`
+						E         string `xml:"e,attr"`
+						Vent      string `xml:"vent,attr"`
+						Onsuccess string `xml:"onsuccess,attr"`
+					} `xml:"action"`
+				} `xml:"actions"`
+				Packages struct {
+					Text    string `xml:",chardata"`
+					Package struct {
+						Text       string `xml:",chardata"`
+						Fp         string `xml:"fp,attr"`
+						Hash       string `xml:"hash,attr"`
+						HashSha256 string `xml:"hash_sha256,attr"`
+						Name       string `xml:"name,attr"`
+						Required   string `xml:"required,attr"`
+						Size       string `xml:"size,attr"`
+					} `xml:"package"`
+				} `xml:"packages"`
+			} `xml:"manifest"`
+		} `xml:"updatecheck"`
+		Data struct {
+			Text   string `xml:",chardata"`
+			Index  string `xml:"index,attr"`
+			Name   string `xml:"name,attr"`
+			Status string `xml:"status,attr"`
+		} `xml:"data"`
+	} `xml:"app"`
 }

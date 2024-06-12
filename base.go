@@ -52,7 +52,7 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		}
 	}))
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
-		chromeInfo := getChromeInfo(getVk(data.branch, sysInfo))
+		chromeInfo := getLocalChromeInfo(getVk(data.branch, sysInfo))
 		data.curVer.Set(chromeInfo.Version)
 		data.fileSize.Set(formatFileSize(chromeInfo.Size))
 		data.urlList.Set(chromeInfo.Urls)
