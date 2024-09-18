@@ -10,7 +10,7 @@ jobs:
       matrix:
         go-version: ['1.21.x']
         os: [ubuntu-latest]
-        arch: ['amd64', '386']
+        arch: ['amd64', '386', 'arm64']
     steps:
       - uses: actions/checkout@v4
         with:
