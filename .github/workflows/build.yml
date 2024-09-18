@@ -43,7 +43,9 @@ jobs:
             mkdir ${GITHUB_WORKSPACE}/dist
             unzip ${GITHUB_WORKSPACE}/fyne-cross/dist/windows-${{ matrix.arch }}/chrome_updater.exe.zip -d ${GITHUB_WORKSPACE}/fyne-cross/dist/windows-${{ matrix.arch }}
             mv -f ${GITHUB_WORKSPACE}/fyne-cross/dist/windows-${{ matrix.arch }}/chrome_updater.exe ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
-            upx -9 ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
+            if [ ${{ matrix.arch }} != 'arm64' ]; then
+               upx -9 ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
+            fi
             zip -rj ${GITHUB_WORKSPACE}/dist/chrome_updater-windows-${{ matrix.arch }}.zip ${GITHUB_WORKSPACE}/dist/chrome_updater.exe
       - name: Release
         uses: softprops/action-gh-release@v1
