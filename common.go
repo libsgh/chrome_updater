@@ -297,6 +297,8 @@ func getInfo() SysInfo {
 		goarch = "x64"
 	} else if runtime.GOARCH == "386" {
 		goarch = "x86"
+	} else if runtime.GOARCH == "arm64" {
+		goarch = "arm64"
 	}
 	if runtime.GOOS == "darwin" {
 		goos = "mac"

@@ -63,6 +63,15 @@ const (
 		<data name="install" index="empty"/>
 	</app>
 	</request>`
+	WIN_BETA_ARM64 = `<?xml version="1.0" encoding="UTF-8"?>
+	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
+	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
+	<os platform="win" version="10.0.22621.1028" sp="" arch="arm64"/>
+	<app appid="{8A69D345-D564-463C-AFF1-A69D9E530F96}" version="" nextversion="" ap="arm64-beta-statsdef_1" lang="de" brand="" client="" installage="-1" installdate="-1" iid="{11111111-1111-1111-1111-111111111111}">
+		<updatecheck/>
+		<data name="install" index="empty"/>
+	</app>
+	</request>`
 	WIN_BETA_X86 = `<?xml version="1.0" encoding="UTF-8"?>
 	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
 	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
@@ -77,6 +86,15 @@ const (
 	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
 	<os platform="win" version="10.0.22621.1028" sp="" arch="x64"/>
 	<app appid="{4EA16AC7-FD5A-47C3-875B-DBF4A2008C20}" version="" nextversion="" ap="x64-canary-statsdef_1" lang="de" brand="" client="" installage="-1" installdate="-1" iid="{11111111-1111-1111-1111-111111111111}">
+		<updatecheck/>
+		<data name="install" index="empty"/>
+	</app>
+	</request>`
+	WIN_CANARY_ARM64 = `<?xml version="1.0" encoding="UTF-8"?>
+	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
+	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
+	<os platform="win" version="10.0.22621.1028" sp="" arch="arm64"/>
+	<app appid="{4EA16AC7-FD5A-47C3-875B-DBF4A2008C20}" version="" nextversion="" ap="arm64-canary-statsdef_1" lang="de" brand="" client="" installage="-1" installdate="-1" iid="{11111111-1111-1111-1111-111111111111}">
 		<updatecheck/>
 		<data name="install" index="empty"/>
 	</app>
@@ -99,6 +117,15 @@ const (
 		<data name="install" index="empty"/>
 	</app>
 	</request>`
+	WIN_DEV_AMR64 = `<?xml version="1.0" encoding="UTF-8"?>
+	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
+	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
+	<os platform="win" version="10.0.22621.1028" sp="" arch="arm64"/>
+	<app appid="{8A69D345-D564-463C-AFF1-A69D9E530F96}" version="" nextversion="" ap="arm64-dev-statsdef_1" lang="de" brand="" client="" installage="-1" installdate="-1" iid="{11111111-1111-1111-1111-111111111111}">
+		<updatecheck/>
+		<data name="install" index="empty"/>
+	</app>
+	</request>`
 	WIN_DEV_X86 = `<?xml version="1.0" encoding="UTF-8"?>
 	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
 	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
@@ -117,6 +144,15 @@ const (
 		<data name="install" index="empty"/>
 	</app>
 	</request>`
+	WIN_STABLE_ARM64 = `<?xml version="1.0" encoding="UTF-8"?>
+	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
+	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
+	<os platform="win" version="10.0.22621.1028" sp="" arch="arm64"/>
+	<app appid="{8A69D345-D564-463C-AFF1-A69D9E530F96}" version="" nextversion="" ap="arm64-stable-statsdef_1" lang="de" brand="" client="" installage="-1" installdate="-1" iid="{11111111-1111-1111-1111-111111111111}">
+		<updatecheck/>
+		<data name="install" index="empty"/>
+	</app>
+	</request>`
 	WIN_STABLE_X86 = `<?xml version="1.0" encoding="UTF-8"?>
 	<request protocol="3.0" updater="Omaha" updaterversion="1.3.36.152" shell_version="1.3.36.151" ismachine="0" sessionid="{11111111-1111-1111-1111-111111111111}" installsource="taggedmi" requestid="{11111111-1111-1111-1111-111111111111}" dedup="cr" domainjoined="0">
 	<hw physmemory="16" sse="1" sse2="1" sse3="1" ssse3="1" sse41="1" sse42="1" avx="1"/>
@@ -129,18 +165,22 @@ const (
 )
 
 var chromeMap = map[string]string{
-	"win_stable_x86": WIN_STABLE_X86,
-	"win_stable_x64": WIN_STABLE_X64,
-	"win_dev_x86":    WIN_DEV_X86,
-	"win_dev_x64":    WIN_DEV_X64,
-	"win_canary_x86": WIN_CANARY_X86,
-	"win_canary_x64": WIN_CANARY_X64,
-	"win_beta_x86":   WIN_BETA_X86,
-	"win_beta_x64":   WIN_BETA_X64,
-	"mac_stable":     MAC_STABLE,
-	"mac_dev":        MAC_DEV,
-	"mac_beta":       MAC_BETA,
-	"mac_canary":     MAC_CANARY}
+	"win_stable_x86":   WIN_STABLE_X86,
+	"win_stable_x64":   WIN_STABLE_X64,
+	"win_stable_arm64": WIN_STABLE_ARM64,
+	"win_dev_x86":      WIN_DEV_X86,
+	"win_dev_x64":      WIN_DEV_X64,
+	"win_dev_arm64":    WIN_DEV_AMR64,
+	"win_canary_x86":   WIN_CANARY_X86,
+	"win_canary_x64":   WIN_CANARY_X64,
+	"win_canary_arm64": WIN_CANARY_ARM64,
+	"win_beta_x86":     WIN_BETA_X86,
+	"win_beta_x64":     WIN_BETA_X64,
+	"win_beta_arm64":   WIN_BETA_ARM64,
+	"mac_stable":       MAC_STABLE,
+	"mac_dev":          MAC_DEV,
+	"mac_beta":         MAC_BETA,
+	"mac_canary":       MAC_CANARY}
 
 // 本地获取Chrome版本信息
 func getLocalChromeInfo(key string) ChromeInfo {
