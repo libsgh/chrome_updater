@@ -120,13 +120,12 @@ func installPlus(data *SettingsData, win fyne.Window) {
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
 	GoroutineDownload(url, fileName, 4, 5*1024*1024, 30, fileSize, plusDownloadProgress, wg)
-	UnCompress7z(fileName, parentPath)
+	UnCompress7zFilter(fileName, parentPath, sysInfo.goarch)
 	os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "version.dll"), path.Join(parentPath, "version.dll"))
 	os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "chrome++.ini"), path.Join(parentPath, "chrome++.ini"))
 	//clean tmp dir
 	os.Remove(fileName)
-	os.RemoveAll(filepath.Join(parentPath, "x86"))
-	os.RemoveAll(filepath.Join(parentPath, "x64"))
+	os.RemoveAll(filepath.Join(parentPath, sysInfo.goarch))
 	plusDownloadProgress.SetValue(1)
 	defer data.oldPlusVer.Set(getString(data.curPlusVer))
 	defer data.plusBtnStatus.Set(false)

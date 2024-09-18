@@ -171,6 +171,34 @@ func UnCompress7z(filePath, targetDir string) {
 	}
 }
 
+func UnCompress7zFilter(filePath, targetDir, filterName string) {
+	r, err := sevenzip.OpenReader(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer r.Close()
+	for _, file := range r.File {
+		if strings.HasPrefix(file.Name, filterName) {
+			rc, err := file.Open()
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rc.Close()
+			fp := path.Join(targetDir, file.Name)
+			if file.FileInfo().IsDir() {
+				os.MkdirAll(fp, os.ModePerm)
+			} else {
+				outputFile, err := os.Create(fp)
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer outputFile.Close()
+				_, err = io.Copy(outputFile, rc)
+			}
+		}
+	}
+}
+
 // 计算文件SHA1
 func sumFileSHA1(filePath string) string {
 	file, err := os.Open(filePath)
