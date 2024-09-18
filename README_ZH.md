@@ -11,7 +11,7 @@
 
 ## 使用说明
 1. 将程序放置于**App**目录内或手动指定**App**文件夹，未检测到Chrome将初始化安装。
-2. 配置存储路径：`C:\Users\%USERNAME%\AppData\Roaming\chrome_updater\config.json`。
+2. 配置存储路径：`C:\Users\%USERNAME%\AppData\Roaming\chrome_updater\config.json`或`Chrome.exe`同级目录
 3. 部分API依赖于GitHub服务，如果遇到网络问题可以设置GitHub代理。
 4. Chrome及Chrome++均可单独更新，互不影响。
 
