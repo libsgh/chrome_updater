@@ -6,6 +6,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 func getConfigPath() string {
@@ -13,7 +14,17 @@ func getConfigPath() string {
 	if appDataDir == "" {
 		appDataDir = os.TempDir()
 	}
-	return filepath.Join(appDataDir, "chrome_updater", "config.json")
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	files, _ := filepath.Glob(filepath.Join(exPath, "*"))
+	if slices.Contains(files, filepath.Join(exPath, "chrome_proxy.exe")) {
+		return filepath.Join(exPath, "config.json")
+	} else {
+		return filepath.Join(appDataDir, "chrome_updater", "config.json")
+	}
 }
 
 // 初始化数据
