@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/BurntSushi/toml"
 )
@@ -20,6 +21,9 @@ func DelayInitializeLocale() error {
 }
 
 func SetLocale(lan string) error {
+	if !slices.Contains([]string{"zh-CN", "en-US"}, lan) {
+		lan = "en-US"
+	}
 	langFile := fmt.Sprint("lang/", lan, ".toml")
 	fd, err := langFS.Open(langFile)
 	if err != nil {
