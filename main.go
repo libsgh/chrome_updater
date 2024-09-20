@@ -9,7 +9,7 @@ import (
 func main() {
 	ap := app.New()
 	//icon, _ := fyne.LoadResourceFromPath("./assets/img/chrome.ico")
-	ap.SetIcon(resourceAssetsImgChromeIco)
+	ap.SetIcon(resourceAssetsImgChromePng)
 	//t.SetFonts("./assets/font/MiSans-Regular.ttf", "")
 	//初始化绑定数据
 	data := initData()
@@ -17,6 +17,7 @@ func main() {
 	ap.Settings().SetTheme(&MyTheme{data.themeSettings, data.langSettings})
 	meta := ap.Metadata()
 	win := ap.NewWindow(LoadString("TitleLabel") + " v" + meta.Version + " by Libs")
+	chromeAutoUpdate(ap, win, data)
 	tabs := container.NewAppTabs(
 		container.NewTabItem(LoadString("TabMainLabel"), baseScreen(win, data)),
 		container.NewTabItem("Chrome++", chromePlusScreen(win, data)),
@@ -26,7 +27,6 @@ func main() {
 	tabs.OnSelected = func(t *container.TabItem) {
 		fyne.CurrentApp().Settings().SetTheme(fyne.CurrentApp().Settings().Theme())
 	}
-
 	win.SetContent(
 		tabs,
 	)
@@ -36,7 +36,17 @@ func main() {
 	//win.SetFixedSize(true)
 	win.SetOnClosed(func() {
 		//保存配置数据
-		saveConfig(data)
+		clearOldUpdater()
+		err := saveConfig(data)
+		handlerErr(err, "配置保存失败，请检查目录权限", win)
+	})
+	ap.Lifecycle().SetOnStopped(func() {
+		clearOldUpdater()
+		err := saveConfig(data)
+		handlerErr(err, "配置保存失败，请检查目录权限", win)
+	})
+	win.SetCloseIntercept(func() {
+		win.Hide()
 	})
 	win.ShowAndRun()
 }

@@ -21,7 +21,7 @@ func DelayInitializeLocale() error {
 }
 
 func SetLocale(lan string) error {
-	if !slices.Contains([]string{"zh-CN", "en-US"}, lan) {
+	if !slices.Contains([]string{"zh-CN", "en-US", "zh-TW"}, lan) {
 		lan = "en-US"
 	}
 	langFile := fmt.Sprint("lang/", lan, ".toml")

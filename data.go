@@ -52,11 +52,13 @@ func initData() *SettingsData {
 		sd.themeSettings.Set(config.Theme)
 		sd.langSettings.Set(config.Lang)
 		sd.ghProxy.Set(config.GhProxy)
+		sd.proxyType.Set(config.ProxyType)
+		sd.autoUpdate.Set(config.AutoUpdate)
 	}
 	return sd
 }
 
-func saveConfig(data *SettingsData) {
+func saveConfig(data *SettingsData) error {
 	config := Config{
 		InstallPath:       getString(data.installPath),
 		VersionBranch:     getString(data.branch),
@@ -68,31 +70,34 @@ func saveConfig(data *SettingsData) {
 		Theme:             getString(data.themeSettings),
 		Lang:              getString(data.langSettings),
 		GhProxy:           getString(data.ghProxy),
+		ProxyType:         getString(data.proxyType),
+		AutoUpdate:        getBool(data.autoUpdate),
 	}
 	jsonData, _ := jsoniter.Marshal(config)
 	configFilePath := getConfigPath()
-	os.Remove(configFilePath)
+	_ = os.Remove(configFilePath)
 	configFileExist := fileExist(configFilePath)
 	if !configFileExist {
 		dir := filepath.Dir(configFilePath)
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			fmt.Println("无法创建目录:", err)
-			return
+			return err
 		}
 		// 创建文件
 		file, err := os.Create(configFilePath)
 		if err != nil {
 			fmt.Println("无法创建文件:", err)
-			return
+			return err
 		}
 		defer file.Close()
 		_, err = file.Write(jsonData)
 		if err != nil {
 			fmt.Println("无法写入文件:", err)
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 // 创建配置数据
@@ -143,6 +148,10 @@ func createSettings() *SettingsData {
 	plusProcessStatus.Set(false)
 	ghProxy := binding.NewString()
 	ghProxy.Set("")
+	proxyType := binding.NewString()
+	proxyType.Set("GH-PROXY")
+	autoUpdate := binding.NewBool()
+	autoUpdate.Set(false)
 	return &SettingsData{
 		installPath:               installPath,
 		oldVer:                    oldVer,
@@ -168,5 +177,7 @@ func createSettings() *SettingsData {
 		themeSettings:             themeSettings,
 		langSettings:              langSettings,
 		ghProxy:                   ghProxy,
+		proxyType:                 proxyType,
+		autoUpdate:                autoUpdate,
 	}
 }

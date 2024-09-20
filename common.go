@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -144,6 +145,47 @@ func getFileName(fileURL string) string {
 	return filename
 }
 
+func unzip(zipFile string, filterNames ...string) {
+	parentPath := filepath.Dir(zipFile)
+	// 打开 ZIP 文件
+	r, err := zip.OpenReader(zipFile)
+	if err != nil {
+		log.Println("无法打开 ZIP 文件:", err)
+		return
+	}
+	defer r.Close()
+	// 遍历 ZIP 文件中的文件并解压指定文件名的文件
+	for _, file := range r.File {
+		for _, targetFileName := range filterNames {
+			if file.Name == targetFileName {
+				rc, err := file.Open()
+				if err != nil {
+					log.Println("无法打开 ZIP 文件中的文件:", err)
+					return
+				}
+				defer rc.Close()
+
+				// 创建解压后的文件
+				newFile, err := os.Create(filepath.Join(parentPath, file.Name))
+				if err != nil {
+					log.Println("无法创建解压后的文件:", err)
+					return
+				}
+				defer newFile.Close()
+
+				// 将 ZIP 文件中的内容解压到新文件中
+				_, err = io.Copy(newFile, rc)
+				if err != nil {
+					fmt.Println("无法解压 ZIP 文件中的内容:", err)
+					return
+				}
+				log.Println("解压文件:", file.Name)
+			}
+		}
+	}
+	log.Println("解压完成.")
+}
+
 // 7z解压缩
 func UnCompress7z(filePath, targetDir string) {
 	r, err := sevenzip.OpenReader(filePath)
@@ -166,7 +208,9 @@ func UnCompress7z(filePath, targetDir string) {
 				log.Fatal(err)
 			}
 			defer outputFile.Close()
-			_, err = io.Copy(outputFile, rc)
+			buf := make([]byte, 1*1024*1024)
+			_, err = io.CopyBuffer(outputFile, rc, buf)
+			//_, err = io.Copy(outputFile, rc)
 		}
 	}
 }
@@ -267,16 +311,16 @@ func isProcessExist(appName string) bool {
 	return false
 }
 func alertInfo(message string, win fyne.Window) {
-	cnf := dialog.NewInformation("提示", message, win)
-	cnf.SetDismissText("关闭")
+	cnf := dialog.NewInformation(LoadString("DialogTooltipTitle"), message, win)
+	cnf.SetDismissText(LoadString("DialogCloseLabel"))
 	cnf.Show()
 }
 func alertConfirm(message string, callback func(bool), win fyne.Window) {
-	cnf := dialog.NewConfirm("确认", message, func(b bool) {
+	cnf := dialog.NewConfirm(LoadString("DialogConfirmLabel"), message, func(b bool) {
 		callback(b)
 	}, win)
-	cnf.SetDismissText("关闭")
-	cnf.SetConfirmText("确认")
+	cnf.SetDismissText(LoadString("DialogCloseLabel"))
+	cnf.SetConfirmText(LoadString("DialogConfirmLabel"))
 	cnf.Show()
 }
 func dirExist(dir string) bool {
@@ -321,4 +365,31 @@ func pathJoin(baseURL, subPath string) string {
 		return subPath
 	}
 	return strings.TrimSuffix(baseURL, "/") + "/" + subPath
+}
+func restartApp(a fyne.App) {
+	ex, err := os.Executable()
+	if err != nil {
+		log.Println(err)
+	}
+	exeName := filepath.Base(ex)
+	parentPath := filepath.Dir(ex)
+	updaterPath := filepath.Join(parentPath, exeName)
+	cmd := exec.Command("cmd.exe", "/C", updaterPath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	a.Quit()
+	_ = cmd.Start()
+}
+func clearOldUpdater() {
+	ex, err := os.Executable()
+	if err != nil {
+		log.Println(err)
+	}
+	exeName := filepath.Base(ex)
+	parentPath := filepath.Dir(ex)
+	_ = os.Remove(filepath.Join(parentPath, exeName+"_old"))
+}
+func handlerErr(err error, message string, win fyne.Window) {
+	if err != nil {
+		alertInfo(message, win)
+	}
 }

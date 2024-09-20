@@ -52,13 +52,7 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		}
 	}))
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
-		chromeInfo := getLocalChromeInfo(getVk(data.branch, sysInfo))
-		data.curVer.Set(chromeInfo.Version)
-		data.fileSize.Set(formatFileSize(chromeInfo.Size))
-		data.urlList.Set(chromeInfo.Urls)
-		data.SHA1.Set(chromeInfo.Sha1)
-		data.SHA256.Set(chromeInfo.Sha256)
-		data.downBtnStatus.Set(false)
+		syncChromeInfo(data, sysInfo)
 	})
 	downloadBtn := widget.NewButtonWithIcon(LoadString("InstallBtnLabel"), theme.DownloadIcon(), func() {
 		ov, _ := data.oldVer.Get()
@@ -70,13 +64,20 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 			if chromeInUse {
 				alertInfo(LoadString("ChromeRunningMsg"), win)
 			} else {
-				if getString(data.oldVer) == "-" {
-					alertConfirm(LoadString("FirstInstallMsg"), func(b bool) {
-						execDownAndUnzip(data, downloadProgress, 0)
-					}, win)
+				if runFlag == 1 {
+					alertInfo(LoadString("ChromeUpdateRunningMsg"), win)
 				} else {
-					execDownAndUnzip(data, downloadProgress, 1)
+					runFlag = 1
+					if getString(data.oldVer) == "-" {
+						alertConfirm(LoadString("FirstInstallMsg"), func(b bool) {
+							execDownAndUnzip(data, downloadProgress, 0)
+						}, win)
+					} else {
+						execDownAndUnzip(data, downloadProgress, 1)
+					}
+					runFlag = 0
 				}
+
 			}
 		}
 	})
@@ -171,9 +172,20 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 			downloadProgress.Hide()
 		}
 	}))
+	if !getBool(data.autoUpdate) {
+		go syncChromeInfo(data, sysInfo)
+	}
 	return container.New(&buttonLayout{}, form, container.NewVBox(downloadProgress, container.NewGridWithColumns(2, checkBtn, downloadBtn)))
 }
-
+func syncChromeInfo(data *SettingsData, sysInfo SysInfo) {
+	chromeInfo := getLocalChromeInfo(getVk(data.branch, sysInfo))
+	data.curVer.Set(chromeInfo.Version)
+	data.fileSize.Set(formatFileSize(chromeInfo.Size))
+	data.urlList.Set(chromeInfo.Urls)
+	data.SHA1.Set(chromeInfo.Sha1)
+	data.SHA256.Set(chromeInfo.Sha256)
+	data.downBtnStatus.Set(false)
+}
 func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, installType int) {
 	data.checkBtnStatus.Set(true)
 	data.folderEntryStatus.Set(true)
@@ -188,7 +200,7 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 	fileName = filepath.Join(parentPath, fileName)
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
-	GoroutineDownload(url, fileName, 4, 5*1024*1024, 30, fileSize, downloadProgress, wg)
+	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 1000, fileSize, downloadProgress, wg)
 	sha1 := sumFileSHA1(fileName)
 	if v, _ := data.SHA1.Get(); v != sha1 {
 		downloadProgress.SetValue(-1)

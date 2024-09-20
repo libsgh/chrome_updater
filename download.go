@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -38,7 +39,7 @@ var (
 //
 //	requestURL := "http://xxx"
 //	GoroutineDownload(requestURL, 20, 10*1024*1024, 30)
-func GoroutineDownload(requestURL, fileName string, poolSize, chunkSize, timeout, fileSize int64, downloadProgress *widget.ProgressBar, wg *sync.WaitGroup) {
+func GoroutineDownload(sd *SettingsData, requestURL, fileName string, poolSize, chunkSize, timeout, fileSize int64, downloadProgress *widget.ProgressBar, wg *sync.WaitGroup) {
 	var index, start int64
 
 	if !strings.HasPrefix(requestURL, "http") {
@@ -65,7 +66,7 @@ func GoroutineDownload(requestURL, fileName string, poolSize, chunkSize, timeout
 
 			// loop download until finish
 			for {
-				start, err = downloadChunkToFile(requestURL, pool, f, chunkSize, timeout, fileSize, downloadProgress, wg)
+				start, err = downloadChunkToFile(sd, requestURL, pool, f, chunkSize, timeout, fileSize, downloadProgress, wg)
 				if err != nil {
 					log.Printf("fetch chunck start:%d error:%+v\n", start, err)
 					pool <- start
@@ -90,8 +91,20 @@ func GoroutineDownload(requestURL, fileName string, poolSize, chunkSize, timeout
 	}
 }
 
-func downloadChunkToFile(requestURL string, pool chan int64, f *os.File, chunkSize, timeout int64, fileSize int64, downloadProgress *widget.ProgressBar, wg *sync.WaitGroup) (start int64, err error) {
+func downloadChunkToFile(sd *SettingsData, requestURL string, pool chan int64, f *os.File, chunkSize, timeout int64, fileSize int64, downloadProgress *widget.ProgressBar, wg *sync.WaitGroup) (start int64, err error) {
 	client := &http.Client{Timeout: time.Second * time.Duration(timeout)}
+	if sd != nil {
+		ghProxy := getString(sd.ghProxy)
+		if ghProxy != "" {
+			if getString(sd.proxyType) == "GH-PROXY" {
+				requestURL = pathJoin(ghProxy, requestURL)
+			} else {
+				urli := url.URL{}
+				urlproxy, _ := urli.Parse(ghProxy)
+				client.Transport = &http.Transport{Proxy: http.ProxyURL(urlproxy)}
+			}
+		}
+	}
 	chunkRequest, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		log.Printf("create request error:%+v\n", err)
@@ -124,10 +137,12 @@ func downloadChunkToFile(requestURL string, pool chan int64, f *os.File, chunkSi
 			log.Printf("write file error:%+v\n", err)
 			return
 		}
-		atomic.AddInt64(&downloadedBytes, int64(written))
-		currentPercent := float64(downloadedBytes) / float64(fileSize)
-		//_ = bar.Add(written)
-		downloadProgress.SetValue(currentPercent * 0.9)
+		if downloadProgress != nil {
+			atomic.AddInt64(&downloadedBytes, int64(written))
+			currentPercent := float64(downloadedBytes) / float64(fileSize)
+			//_ = bar.Add(written)
+			downloadProgress.SetValue(currentPercent * 0.9)
+		}
 		_ = resp.Body.Close()
 
 		// echo chunk will down one.

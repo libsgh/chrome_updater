@@ -54,6 +54,8 @@ type SettingsData struct {
 	themeSettings             binding.String     //主题设置
 	langSettings              binding.String     //语言设置
 	ghProxy                   binding.String     //Github代理
+	proxyType                 binding.String     //代理类型
+	autoUpdate                binding.Bool       //自动更新
 }
 
 // 配置选项
@@ -68,6 +70,8 @@ type Config struct {
 	Theme             string `json:"theme"`               //主题设置
 	Lang              string `json:"lang"`                //语言设置
 	GhProxy           string `json:"gh_proxy"`            //Github代理加速
+	ProxyType         string `json:"proxy_type"`          //代理类型
+	AutoUpdate        bool   `json:"auto_update"`         //自动更新
 }
 
 type GithubRelease struct {

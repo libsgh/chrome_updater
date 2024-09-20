@@ -11,10 +11,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
@@ -47,15 +49,20 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		}
 	})
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
-		githubReleaseMap, versionList = getChromePlusInfo(getString(data.ghProxy))
-		if githubReleaseMap != nil && len(versionList) > 0 {
-			versionSelect.SetOptions(versionList)
-			versionSelect.SetSelected(versionList[0])
-			setPlusVer(data, versionList[0], githubReleaseMap)
-			versionSelect.Enable()
-			downBtn.Enable()
+		var err error
+		githubReleaseMap, versionList, err = getChromePlusInfo(data)
+		if err != nil {
+			alertInfo(LoadString("UpdateErrMsg"), win)
 		} else {
-			alertInfo(LoadString("CheckErrMsg"), win)
+			if githubReleaseMap != nil && len(versionList) > 0 {
+				versionSelect.SetOptions(versionList)
+				versionSelect.SetSelected(versionList[0])
+				setPlusVer(data, versionList[0], githubReleaseMap)
+				versionSelect.Enable()
+				downBtn.Enable()
+			} else {
+				alertInfo(LoadString("UpdateErrMsg"), win)
+			}
 		}
 	})
 	data.plusBtnStatus.AddListener(binding.NewDataListener(func() {
@@ -101,7 +108,7 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 func setPlusVer(data *SettingsData, ver string, releaseMap map[string]GithubRelease) {
 	plusInfo := releaseMap[ver]
 	data.curPlusVer.Set(plusInfo.TagName)
-	data.plusDownloadUrl.Set(pathJoin(getString(data.ghProxy), plusInfo.Assets[0].BrowserDownloadURL))
+	data.plusDownloadUrl.Set(plusInfo.Assets[0].BrowserDownloadURL)
 }
 
 var (
@@ -119,10 +126,12 @@ func installPlus(data *SettingsData, win fyne.Window) {
 	fileName = filepath.Join(parentPath, fileName)
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
-	GoroutineDownload(url, fileName, 4, 5*1024*1024, 30, fileSize, plusDownloadProgress, wg)
+	GoroutineDownload(data, url, fileName, 4, 100*1024, 500, fileSize, plusDownloadProgress, wg)
 	UnCompress7zFilter(fileName, parentPath, sysInfo.goarch)
 	os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "version.dll"), path.Join(parentPath, "version.dll"))
-	os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "chrome++.ini"), path.Join(parentPath, "chrome++.ini"))
+	if !fileExist(path.Join(parentPath, "chrome++.ini")) {
+		os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "chrome++.ini"), path.Join(parentPath, "chrome++.ini"))
+	}
 	//clean tmp dir
 	os.Remove(fileName)
 	os.RemoveAll(filepath.Join(parentPath, sysInfo.goarch))
@@ -131,18 +140,38 @@ func installPlus(data *SettingsData, win fyne.Window) {
 	defer data.plusBtnStatus.Set(false)
 	alertInfo(LoadString("InstalledMsg"), win)
 }
+func setProxy(sd *SettingsData, reqUrl string) (*http.Client, string) {
+	ghProxy := getString(sd.ghProxy)
+	client := http.Client{Timeout: time.Second * time.Duration(30)}
+	if ghProxy != "" {
+		if getString(sd.proxyType) == "GH-PROXY" {
+			reqUrl = pathJoin(ghProxy, reqUrl)
+		} else {
+			urli := url.URL{}
+			urlproxy, _ := urli.Parse(ghProxy)
+			client.Transport = &http.Transport{
+				Proxy: http.ProxyURL(urlproxy),
+			}
+		}
+	}
+	return &client, reqUrl
+}
 
-func getChromePlusInfo(ghProxy string) (map[string]GithubRelease, []string) {
-	response, err := http.Get(pathJoin(ghProxy, "https://raw.githubusercontent.com/libsgh/ghapi-json-generator/output/v2/repos/Bush2021/chrome_plus/releases%3Fper_page%3D10/data.json"))
+func getChromePlusInfo(sd *SettingsData) (map[string]GithubRelease, []string, error) {
+	apiUrl := "https://raw.githubusercontent.com/libsgh/ghapi-json-generator/output/v2/repos/Bush2021/chrome_plus/releases%3Fper_page%3D10/data.json"
+	client, reqUrl := setProxy(sd, apiUrl)
+	response, err := client.Get(reqUrl)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return nil, nil, err
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(response.Body)
 	var githubReleases []GithubRelease
 	jsoniter.UnmarshalFromString(string(data), &githubReleases)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return nil, nil, err
 	}
 	result := make(map[string]GithubRelease)
 	versionList := make([]string, 0)
@@ -151,5 +180,5 @@ func getChromePlusInfo(ghProxy string) (map[string]GithubRelease, []string) {
 		result[item.TagName] = item
 		versionList = append(versionList, item.TagName)
 	}
-	return result, versionList
+	return result, versionList, err
 }

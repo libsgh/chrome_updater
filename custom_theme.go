@@ -18,7 +18,7 @@ var _ fyne.Theme = (*MyTheme)(nil)
 // Font return bundled font resource
 func (mt MyTheme) Font(s fyne.TextStyle) fyne.Resource {
 	lang := getString(mt.Lang)
-	if lang == "zh-CN" || ((lang == "System" || lang == "") && DefaultLocaleName() == "zh-CN") {
+	if lang == "zh-CN" || ((lang == "System" || lang == "" || lang == "zh-TW") && DefaultLocaleName() == "zh-CN") {
 		if s.Bold {
 			return resourceAssetsFontAlibabaPuHuiTi385BoldTtf
 		}

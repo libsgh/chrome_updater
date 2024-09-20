@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ['1.21.x']
+        go-version: ['stable']
         os: [ubuntu-latest]
         arch: ['amd64', '386', 'arm64']
     steps:
