@@ -53,7 +53,7 @@ func chromeAutoUpdate(a fyne.App, win fyne.Window, data *SettingsData) {
 var runFlag = 0
 
 func addUpdateCron(data *SettingsData) {
-	spec := "*/5 * * * * *" // 每隔5s执行一次，cron格式（秒，分，时，天，月，周）
+	spec := "* * */1 * * *" // 每隔5s执行一次，cron格式（秒，分，时，天，月，周）
 	_, _ = cronManager.AddFunc(spec, func() {
 		chromeInUse := isProcessExist("chrome.exe")
 		if runFlag == 1 || chromeInUse {
