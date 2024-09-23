@@ -55,4 +55,5 @@ SystemTrayAutoUpdateMenu = "自动更新"
 DialogTooltipTitle = "提示"
 DialogConfirmLabel = "确认"
 DialogCloseLabel = "关闭"
+AutoUpdateProgress = "自动更新中..."
 

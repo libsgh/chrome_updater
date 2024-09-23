@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/widget"
 	"github.com/robfig/cron/v3"
 	"os"
 	"path"
@@ -19,7 +20,7 @@ func chromeAutoUpdate(a fyne.App, win fyne.Window, data *SettingsData) {
 	if desk, ok := a.(desktop.App); ok {
 		addUpdateCron(data)
 		updateMenu := fyne.NewMenuItem(LoadString("SystemTrayAutoUpdateMenu"), func() {
-			data.autoUpdate.Set(!getBool(data.autoUpdate))
+			_ = data.autoUpdate.Set(!getBool(data.autoUpdate))
 		})
 		updateMenu.Checked = getBool(data.autoUpdate)
 		if getBool(data.autoUpdate) {
@@ -52,7 +53,7 @@ func chromeAutoUpdate(a fyne.App, win fyne.Window, data *SettingsData) {
 var runFlag = 0
 
 func addUpdateCron(data *SettingsData) {
-	spec := "* * */1 * * *" // 每隔5s执行一次，cron格式（秒，分，时，天，月，周）
+	spec := "*/5 * * * * *" // 每隔5s执行一次，cron格式（秒，分，时，天，月，周）
 	_, _ = cronManager.AddFunc(spec, func() {
 		chromeInUse := isProcessExist("chrome.exe")
 		if runFlag == 1 || chromeInUse {
@@ -74,6 +75,7 @@ func addUpdateCron(data *SettingsData) {
 				autoInstall(data)
 			}
 			runFlag = 0
+			downloadBtn.SetText(LoadString("InstallBtnLabel"))
 		}
 	})
 }
@@ -91,10 +93,10 @@ func autoInstall(data *SettingsData) {
 	if fileExist(fileName) {
 		sha1 = sumFileSHA1(fileName)
 		if v, _ := data.SHA1.Get(); v != sha1 {
-			sha1 = downloadChrome(data, url, fileName)
+			sha1 = downloadChrome(url, fileName)
 		}
 	} else {
-		sha1 = downloadChrome(data, url, fileName)
+		sha1 = downloadChrome(url, fileName)
 	}
 	if v, _ := data.SHA1.Get(); v == sha1 {
 		defer timeCost(time.Now())
@@ -124,10 +126,18 @@ func autoInstall(data *SettingsData) {
 		}
 	}
 }
-func downloadChrome(data *SettingsData, url, fileName string) string {
+func downloadChrome(url, fileName string) string {
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
-	GoroutineDownload(data, url, fileName, 4, 1*1024*1024, 1000, fileSize, nil, wg)
+	autoDownloadProgress := widget.NewProgressBar()
+	autoDownloadProgress.SetValue(0)
+	autoDownloadProgress.TextFormatter = func() string {
+		percentageStr := fmt.Sprintf("%.1f%%", autoDownloadProgress.Value*100.0/0.9)
+		downloadBtn.SetText(LoadString("AutoUpdateProgress") + percentageStr)
+		return ""
+	}
+	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 1000, fileSize, autoDownloadProgress, wg)
+	downloadedBytes = 0
 	sha1 := sumFileSHA1(fileName)
 	return sha1
 }

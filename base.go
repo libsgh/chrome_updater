@@ -54,7 +54,7 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
 		syncChromeInfo(data, sysInfo)
 	})
-	downloadBtn := widget.NewButtonWithIcon(LoadString("InstallBtnLabel"), theme.DownloadIcon(), func() {
+	downloadBtn = widget.NewButtonWithIcon(LoadString("InstallBtnLabel"), theme.DownloadIcon(), func() {
 		ov, _ := data.oldVer.Get()
 		cv, _ := data.curVer.Get()
 		if cv == ov {
@@ -201,6 +201,7 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
 	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 1000, fileSize, downloadProgress, wg)
+	downloadedBytes = 0
 	sha1 := sumFileSHA1(fileName)
 	if v, _ := data.SHA1.Get(); v != sha1 {
 		downloadProgress.SetValue(-1)
@@ -244,6 +245,7 @@ func initInstallDirs(data *SettingsData) {
 
 var (
 	downloadProgress *widget.ProgressBar
+	downloadBtn      *widget.Button
 )
 
 // 获取下载地址

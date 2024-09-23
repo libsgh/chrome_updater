@@ -127,6 +127,7 @@ func installPlus(data *SettingsData, win fyne.Window) {
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
 	GoroutineDownload(data, url, fileName, 4, 100*1024, 500, fileSize, plusDownloadProgress, wg)
+	downloadedBytes = 0
 	UnCompress7zFilter(fileName, parentPath, sysInfo.goarch)
 	os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "version.dll"), path.Join(parentPath, "version.dll"))
 	if !fileExist(path.Join(parentPath, "chrome++.ini")) {

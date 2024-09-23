@@ -116,6 +116,7 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 		return ""
 	}
 	GoroutineDownload(sd, url, fileName, 4, 50*1024, 500, fileSize, updaterDownloadProgress, wg)
+	downloadedBytes = 0
 	updaterPath := filepath.Join(parentPath, exeName)
 	if fileExist(updaterPath) {
 		os.Rename(updaterPath, filepath.Join(parentPath, exeName+"_old"))
