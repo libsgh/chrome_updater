@@ -15,6 +15,9 @@
 3. 部分API依赖于GitHub服务，如果遇到网络问题可以设置GitHub代理。
 4. Chrome及Chrome++均可单独更新，互不影响。
 
+## Bug报告
+执行`chrome_updater.exe -debug=1`会生成`debug.log`文件，发 [issues](https://github.com/libsgh/chrome_updater/issues) 请带上该文件
+
 ## 链接
 - [Chrome离线包](https://chrome.noki.eu.org "https://chrome.noki.eu.org")
 - [Chrome ++](https://github.com/Bush2021/chrome_plus "https://github.com/Bush2021/chrome_plus")

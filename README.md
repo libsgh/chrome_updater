@@ -17,7 +17,7 @@ English | [中文](https://github.com/libsgh/chrome_updater/blob/main/README_ZH.
 4. Both Chrome and Chrome++ can be updated independently without affecting each other.
 
 ## Bug report
-
+Run `chrome_updater.exe -debug=1` will get a `debug.log` file, please bring it with you to your [issues](https://github.com/libsgh/chrome_updater/issues)
 
 ## Links
 - [Web Service](https://chrome.noki.eu.org "https://chrome.noki.eu.org")
