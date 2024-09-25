@@ -10,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	jsoniter "github.com/json-iterator/go"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -175,6 +174,7 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	if !getBool(data.autoUpdate) {
 		go syncChromeInfo(data, sysInfo)
 	}
+	logger.Debug("Base tab load success.")
 	return container.New(&buttonLayout{}, form, container.NewVBox(downloadProgress, container.NewGridWithColumns(2, checkBtn, downloadBtn)))
 }
 func syncChromeInfo(data *SettingsData, sysInfo SysInfo) {
@@ -271,7 +271,7 @@ func getChromeInfo(key string) ChromeInfo {
 	// 发送 HTTP 请求获取 JSON 数据
 	response, err := http.Get("https://chrome.noki.eu.org/api/c/info")
 	if err != nil {
-		log.Fatal(err)
+		logger.Panic(err)
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(response.Body)
@@ -280,7 +280,7 @@ func getChromeInfo(key string) ChromeInfo {
 	infoStr := jsoniter.Get(data, key).ToString()
 	jsoniter.UnmarshalFromString(infoStr, &chromeInfo)
 	if err != nil {
-		log.Fatal(err)
+		logger.Panic(err)
 	}
 	return chromeInfo
 }
@@ -296,17 +296,17 @@ func installPathHandle(data *SettingsData) {
 		data.installPath.Set(dir)
 	}
 	if err != nil {
-		log.Fatal(err)
+		logger.Panic(err)
 	}
 	// 打开当前目录
 	dirHandle, err := os.Open(dir)
 	if err != nil {
-		log.Fatal()
+		logger.Panic(err)
 	}
 	defer dirHandle.Close()
 	fileInfos, err := dirHandle.Readdir(-1)
 	if err != nil {
-		log.Fatal(err)
+		logger.Panic(err)
 	}
 	result := false
 	v := ""

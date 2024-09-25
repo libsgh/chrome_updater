@@ -10,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"github.com/bodgit/sevenzip"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -150,7 +149,7 @@ func unzip(zipFile string, filterNames ...string) {
 	// 打开 ZIP 文件
 	r, err := zip.OpenReader(zipFile)
 	if err != nil {
-		log.Println("无法打开 ZIP 文件:", err)
+		logger.Errorln("无法打开 ZIP 文件:", err)
 		return
 	}
 	defer r.Close()
@@ -160,7 +159,7 @@ func unzip(zipFile string, filterNames ...string) {
 			if file.Name == targetFileName {
 				rc, err := file.Open()
 				if err != nil {
-					log.Println("无法打开 ZIP 文件中的文件:", err)
+					logger.Errorln("无法打开 ZIP 文件中的文件:", err)
 					return
 				}
 				defer rc.Close()
@@ -168,7 +167,7 @@ func unzip(zipFile string, filterNames ...string) {
 				// 创建解压后的文件
 				newFile, err := os.Create(filepath.Join(parentPath, file.Name))
 				if err != nil {
-					log.Println("无法创建解压后的文件:", err)
+					logger.Errorln("无法创建解压后的文件:", err)
 					return
 				}
 				defer newFile.Close()
@@ -179,24 +178,24 @@ func unzip(zipFile string, filterNames ...string) {
 					fmt.Println("无法解压 ZIP 文件中的内容:", err)
 					return
 				}
-				log.Println("解压文件:", file.Name)
+				logger.Errorln("解压文件:", file.Name)
 			}
 		}
 	}
-	log.Println("解压完成.")
+	logger.Debug("解压完成.")
 }
 
 // 7z解压缩
 func UnCompress7z(filePath, targetDir string) {
 	r, err := sevenzip.OpenReader(filePath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Panic(err)
 	}
 	defer r.Close()
 	for _, file := range r.File {
 		rc, err := file.Open()
 		if err != nil {
-			log.Fatal(err)
+			logger.Panic(err)
 		}
 		defer rc.Close()
 		fp := path.Join(targetDir, file.Name)
@@ -205,7 +204,7 @@ func UnCompress7z(filePath, targetDir string) {
 		} else {
 			outputFile, err := os.Create(fp)
 			if err != nil {
-				log.Fatal(err)
+				logger.Panic(err)
 			}
 			defer outputFile.Close()
 			buf := make([]byte, 1*1024*1024)
@@ -218,14 +217,14 @@ func UnCompress7z(filePath, targetDir string) {
 func UnCompress7zFilter(filePath, targetDir, filterName string) {
 	r, err := sevenzip.OpenReader(filePath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Panic(err)
 	}
 	defer r.Close()
 	for _, file := range r.File {
 		if strings.HasPrefix(file.Name, filterName) {
 			rc, err := file.Open()
 			if err != nil {
-				log.Fatal(err)
+				logger.Panic(err)
 			}
 			defer rc.Close()
 			fp := path.Join(targetDir, file.Name)
@@ -234,7 +233,7 @@ func UnCompress7zFilter(filePath, targetDir, filterName string) {
 			} else {
 				outputFile, err := os.Create(fp)
 				if err != nil {
-					log.Fatal(err)
+					logger.Panic(err)
 				}
 				defer outputFile.Close()
 				_, err = io.Copy(outputFile, rc)
@@ -369,7 +368,7 @@ func pathJoin(baseURL, subPath string) string {
 func restartApp(a fyne.App) {
 	ex, err := os.Executable()
 	if err != nil {
-		log.Println(err)
+		logger.Errorln(err)
 	}
 	exeName := filepath.Base(ex)
 	parentPath := filepath.Dir(ex)
@@ -382,7 +381,7 @@ func restartApp(a fyne.App) {
 func clearOldUpdater() {
 	ex, err := os.Executable()
 	if err != nil {
-		log.Println(err)
+		logger.Errorln(err)
 	}
 	exeName := filepath.Base(ex)
 	parentPath := filepath.Dir(ex)

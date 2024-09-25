@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2/data/binding"
 	jsoniter "github.com/json-iterator/go"
+	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 	"slices"
@@ -16,7 +17,7 @@ func getConfigPath() string {
 	}
 	ex, err := os.Executable()
 	if err != nil {
-		panic(err)
+		logger.Error(err)
 	}
 	exPath := filepath.Dir(ex)
 	files, _ := filepath.Glob(filepath.Join(exPath, "*"))
@@ -30,18 +31,20 @@ func getConfigPath() string {
 // 初始化数据
 func initData() *SettingsData {
 	configFilePath := getConfigPath()
+	logger.Debugf("Config path: %s", configFilePath)
 	configFileExist := fileExist(configFilePath)
 	var config Config
 	sd := createSettings()
 	if configFileExist {
 		file, err := os.Open(configFilePath)
 		if err != nil {
-			fmt.Println("无法打开文件:", err)
+			logger.Errorln("无法打开文件:", err)
 		}
 		decoder := jsoniter.NewDecoder(file)
-		if err := decoder.Decode(&config); err != nil {
-			fmt.Println("解析 JSON 失败:", err)
+		if err = decoder.Decode(&config); err != nil {
+			logger.Errorln("解析 JSON 失败:", err)
 		}
+		logger.Debug(zap.Any("config", config))
 		sd.installPath.Set(config.InstallPath)
 		sd.branch.Set(config.VersionBranch)
 		sd.urlKey.Set(config.DownloadChannel)

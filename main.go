@@ -1,20 +1,35 @@
 package main
 
 import (
+	"flag"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"runtime/debug"
 )
 
 func main() {
+	var level string
+	flag.StringVar(&level, "debug", "0", "调试级别")
+	flag.Parse()
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("%s", debug.Stack())
+			logger.Errorf("This is error message: %v", r)
+		}
+	}()
 	ap := app.New()
 	//icon, _ := fyne.LoadResourceFromPath("./assets/img/chrome.ico")
 	ap.SetIcon(resourceAssetsImgChromePng)
 	//t.SetFonts("./assets/font/MiSans-Regular.ttf", "")
+	InitLogger(level)
 	//初始化绑定数据
 	data := initData()
+	logger.Debug("Init data success:")
 	initBundle(*data)
+	logger.Debug("Set lang success.")
 	ap.Settings().SetTheme(&MyTheme{data.themeSettings, data.langSettings})
+	logger.Debug("Set theme success.")
 	meta := ap.Metadata()
 	win := ap.NewWindow(LoadString("TitleLabel") + " v" + meta.Version + " by Libs")
 	chromeAutoUpdate(ap, win, data)

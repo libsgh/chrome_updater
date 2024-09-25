@@ -9,7 +9,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	jsoniter "github.com/json-iterator/go"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -100,6 +99,7 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 			plusDownloadProgress.Hide()
 		}
 	}))
+	logger.Debug("Chrome++ tab load success.")
 	return container.New(&buttonLayout{}, container.NewVBox(form,
 		infoCard,
 	), container.NewVBox(plusDownloadProgress, container.NewGridWithColumns(2, checkBtn, downBtn)))
@@ -163,7 +163,7 @@ func getChromePlusInfo(sd *SettingsData) (map[string]GithubRelease, []string, er
 	client, reqUrl := setProxy(sd, apiUrl)
 	response, err := client.Get(reqUrl)
 	if err != nil {
-		log.Println(err)
+		logger.Errorln(err)
 		return nil, nil, err
 	}
 	defer response.Body.Close()
@@ -171,15 +171,15 @@ func getChromePlusInfo(sd *SettingsData) (map[string]GithubRelease, []string, er
 	var githubReleases []GithubRelease
 	jsoniter.UnmarshalFromString(string(data), &githubReleases)
 	if err != nil {
-		log.Println(err)
+		logger.Errorln(err)
 		return nil, nil, err
 	}
 	result := make(map[string]GithubRelease)
 	versionList := make([]string, 0)
-
 	for _, item := range githubReleases {
 		result[item.TagName] = item
 		versionList = append(versionList, item.TagName)
 	}
+	logger.Debugf("Chrome++ versions:%v", versionList)
 	return result, versionList, err
 }

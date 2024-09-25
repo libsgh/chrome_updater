@@ -48,6 +48,7 @@ func chromeAutoUpdate(a fyne.App, win fyne.Window, data *SettingsData) {
 		}))
 		desk.SetSystemTrayMenu(m)
 	}
+	logger.Debug("Set system tray menu success.")
 }
 
 var runFlag = 0
@@ -55,7 +56,6 @@ var runFlag = 0
 func addUpdateCron(data *SettingsData) {
 	spec := "0 0 0/1 * * ?"
 	_, _ = cronManager.AddFunc(spec, func() {
-		fmt.Println(time.Now())
 		chromeInUse := isProcessExist("chrome.exe")
 		if runFlag == 1 || chromeInUse {
 			return

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"fyne.io/fyne/v2/widget"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -50,7 +49,7 @@ func GoroutineDownload(sd *SettingsData, requestURL, fileName string, poolSize, 
 	// open file
 	f, err := os.OpenFile(fileName, FileFlag, FileMode)
 	if err != nil {
-		log.Printf("open error:%+v\n", err)
+		logger.Errorf("open error:%+v\n", err)
 		return
 	}
 	defer f.Close()
@@ -60,7 +59,7 @@ func GoroutineDownload(sd *SettingsData, requestURL, fileName string, poolSize, 
 			// recover
 			defer func() {
 				if err2 := recover(); err2 != nil {
-					log.Printf("panic error: %+v, stack:%s", err2, debug.Stack())
+					logger.Errorf("panic error: %+v, stack:%s", err2, debug.Stack())
 				}
 			}()
 
@@ -68,12 +67,12 @@ func GoroutineDownload(sd *SettingsData, requestURL, fileName string, poolSize, 
 			for {
 				start, err = downloadChunkToFile(sd, requestURL, pool, f, chunkSize, timeout, fileSize, downloadProgress, wg)
 				if err != nil {
-					log.Printf("fetch chunck start:%d error:%+v\n", start, err)
+					logger.Errorf("fetch chunck start:%d error:%+v\n", start, err)
 					pool <- start
 				} else {
 					break
 				}
-				log.Printf("start loop download again")
+				logger.Debugln("start loop download again")
 			}
 		}()
 	}
@@ -87,7 +86,7 @@ func GoroutineDownload(sd *SettingsData, requestURL, fileName string, poolSize, 
 	// 关闭文件
 	err = f.Close()
 	if err != nil {
-		log.Printf("关闭文件错误：%+v\n", err)
+		logger.Errorf("关闭文件错误：%+v\n", err)
 	}
 }
 
@@ -107,7 +106,7 @@ func downloadChunkToFile(sd *SettingsData, requestURL string, pool chan int64, f
 	}
 	chunkRequest, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
-		log.Printf("create request error:%+v\n", err)
+		logger.Errorf("create request error:%+v\n", err)
 		return
 	}
 
@@ -119,14 +118,14 @@ func downloadChunkToFile(sd *SettingsData, requestURL string, pool chan int64, f
 		chunkRequest.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, start+chunkSize-1))
 		resp, err = client.Do(chunkRequest)
 		if err != nil {
-			log.Printf("send request error:%+v\n", err)
+			logger.Errorf("send request error:%+v\n", err)
 			return
 		}
 
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
 			_ = resp.Body.Close()
-			log.Printf("read response error:%+v\n", err)
+			logger.Errorf("read response error:%+v\n", err)
 			return
 		}
 
@@ -134,7 +133,7 @@ func downloadChunkToFile(sd *SettingsData, requestURL string, pool chan int64, f
 		if err != nil {
 			_ = resp.Body.Close()
 			wg.Done()
-			log.Printf("write file error:%+v\n", err)
+			logger.Errorf("write file error:%+v\n", err)
 			return
 		}
 		if downloadProgress != nil {

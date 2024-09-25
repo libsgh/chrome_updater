@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -188,19 +187,19 @@ func getLocalChromeInfo(key string) ChromeInfo {
 	body := []byte(chromeMap[key])
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
-		panic(err)
+		logger.Error(err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Google Update/1.3.36.152;winhttp")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		logger.Panic(err)
 	}
 	defer resp.Body.Close()
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		logger.Error(err)
 	}
 	d := &Response{}
 	xml.Unmarshal(responseBody, d)
@@ -210,14 +209,15 @@ func getLocalChromeInfo(key string) ChromeInfo {
 	for _, s := range d.App.Updatecheck.Urls.URL {
 		urls = append(urls, s.Codebase+name)
 	}
+
 	info.Urls = urls
 	info.Version = d.App.Updatecheck.Manifest.Version
 	info.Sha256 = strings.ToUpper(d.App.Updatecheck.Manifest.Packages.Package.HashSha256)
-	bytes, err := base64.StdEncoding.DecodeString(d.App.Updatecheck.Manifest.Packages.Package.Hash)
+	bts, err := base64.StdEncoding.DecodeString(d.App.Updatecheck.Manifest.Packages.Package.Hash)
 	if err != nil {
-		fmt.Printf("Base64 decoding error: %v\n", err)
+		logger.Errorf("Base64 decoding error: %v\n", err)
 	}
-	hexString := hex.EncodeToString(bytes)
+	hexString := hex.EncodeToString(bts)
 	info.Sha1 = strings.ToUpper(hexString)
 	fileSize, _ := strconv.ParseInt(d.App.Updatecheck.Manifest.Packages.Package.Size, 10, 64)
 	info.Size = fileSize

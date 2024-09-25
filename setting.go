@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	jsoniter "github.com/json-iterator/go"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,11 +62,11 @@ func settingsScreen(a fyne.App, win fyne.Window, data *SettingsData) fyne.Canvas
 		//_ = a.OpenURL(parseURL(url))
 		UpdateSelf(a, data, getString(updateUrl), updateBtnText)
 	})
-	go chromeUpdaterNew(data, getString(data.ghProxy), updateUrl, newBtn)
+	go chromeUpdaterNew(data, updateUrl, newBtn)
 	updateBtnText.AddListener(binding.NewDataListener(func() {
 		newBtn.SetText(getString(updateBtnText))
 	}))
-
+	logger.Debug("Setting tab load success.")
 	return container.NewCenter(container.NewVBox(
 		widget.NewLabelWithStyle(LoadString("BaseSettingLabel"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		container.NewGridWithColumns(3, installFileConfig, historyVersionConfig),
@@ -101,7 +100,7 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 	_ = btnText.Set("0.0%")
 	ex, err := os.Executable()
 	if err != nil {
-		panic(err)
+		logger.Panic(err)
 	}
 	exeName := filepath.Base(ex)
 	parentPath := filepath.Dir(ex)
@@ -128,25 +127,28 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 	a.Quit()
 	_ = cmd.Start()
 }
-func chromeUpdaterNew(sd *SettingsData, proxy string, updateUrl binding.String, newBtn *widget.Button) {
+func chromeUpdaterNew(sd *SettingsData, updateUrl binding.String, newBtn *widget.Button) error {
 	apiUrl := "https://raw.githubusercontent.com/libsgh/ghapi-json-generator/output/v2/repos/libsgh/chrome_updater/releases%3Fper_page%3D10/data.json"
 	client, reqUrl := setProxy(sd, apiUrl)
 	response, err := client.Get(reqUrl)
 	if err != nil {
-		log.Println(err)
+		logger.Errorln(err)
+		return err
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(response.Body)
 	var githubReleases []GithubRelease
 	jsoniter.UnmarshalFromString(string(data), &githubReleases)
 	if err != nil {
-		log.Println(err)
+		logger.Errorln(err)
+		return err
 	}
 	if len(githubReleases) != 0 {
 		ver := "v" + fyne.CurrentApp().Metadata().Version
 		lastedVer := githubReleases[0].TagName
 		for _, asset := range githubReleases[0].Assets {
 			if strings.Contains(asset.BrowserDownloadURL, fmt.Sprintf("chrome_updater-windows-%s.zip", runtime.GOARCH)) {
+				logger.Debugf("Chrome updater url:%s", asset.BrowserDownloadURL)
 				updateUrl.Set(asset.BrowserDownloadURL)
 			}
 		}
@@ -157,4 +159,5 @@ func chromeUpdaterNew(sd *SettingsData, proxy string, updateUrl binding.String, 
 			newBtn.Hide()
 		}
 	}
+	return nil
 }
