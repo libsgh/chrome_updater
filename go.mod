@@ -6,9 +6,9 @@ require (
 	fyne.io/fyne/v2 v2.4.5
 	github.com/BurntSushi/toml v1.3.2
 	github.com/bodgit/sevenzip v1.5.1
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/json-iterator/go v1.1.11
 	github.com/robfig/cron/v3 v3.0.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/sys v0.16.0
 )
 
@@ -46,7 +46,6 @@ require (
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/yuin/goldmark v1.5.5 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
