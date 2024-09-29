@@ -20,6 +20,14 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"unsafe"
+)
+
+var (
+	versionDLL                 = syscall.NewLazyDLL("version.dll")
+	procGetFileVersionInfo     = versionDLL.NewProc("GetFileVersionInfoW")
+	procGetFileVersionInfoSize = versionDLL.NewProc("GetFileVersionInfoSizeW")
+	procVerQueryValue          = versionDLL.NewProc("VerQueryValueW")
 )
 
 // url转换
@@ -391,4 +399,79 @@ func handlerErr(err error, message string, win fyne.Window) {
 	if err != nil {
 		alertInfo(message, win)
 	}
+}
+
+func GetFileVersion(path string) (string, error) {
+	p, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return "", err
+	}
+
+	// Get the size of the version info
+	size, _, _ := procGetFileVersionInfoSize.Call(uintptr(unsafe.Pointer(p)), 0)
+	if size == 0 {
+		return "", fmt.Errorf("failed to get version info size")
+	}
+
+	// Allocate a buffer to hold the version info
+	buffer := make([]byte, size)
+
+	// Get the version info
+	ret, _, err := procGetFileVersionInfo.Call(
+		uintptr(unsafe.Pointer(p)),
+		0,
+		uintptr(size),
+		uintptr(unsafe.Pointer(&buffer[0])),
+	)
+	if ret == 0 {
+		return "", fmt.Errorf("failed to get version info: %v", err)
+	}
+
+	// Query the VarFileInfo to find the language and code page
+	var block unsafe.Pointer
+	var blockLen uint32
+	ret, _, err = procVerQueryValue.Call(
+		uintptr(unsafe.Pointer(&buffer[0])),
+		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr("\\VarFileInfo\\Translation"))),
+		uintptr(unsafe.Pointer(&block)),
+		uintptr(unsafe.Pointer(&blockLen)),
+	)
+	if ret == 0 {
+		return "", fmt.Errorf("failed to query translation value: %v", err)
+	}
+
+	translations := (*[1 << 20][2]uint16)(block)[:blockLen/4]
+	if len(translations) == 0 {
+		return "", fmt.Errorf("no translations found")
+	}
+
+	// Use the first translation found
+	langCodePage := fmt.Sprintf("%04x%04x", translations[0][0], translations[0][1])
+	subBlock := fmt.Sprintf("\\StringFileInfo\\%s\\FileVersion", langCodePage)
+
+	// Query the version value
+	ret, _, err = procVerQueryValue.Call(
+		uintptr(unsafe.Pointer(&buffer[0])),
+		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(subBlock))),
+		uintptr(unsafe.Pointer(&block)),
+		uintptr(unsafe.Pointer(&blockLen)),
+	)
+	if ret == 0 {
+		return "", fmt.Errorf("failed to query version value: %v", err)
+	}
+
+	version := syscall.UTF16ToString((*[1 << 20]uint16)(block)[:blockLen])
+	return version, nil
+}
+func GetVersion(sd *SettingsData, fileName string) string {
+	exePath := filepath.Join(getString(sd.installPath), fileName)
+	if fileExist(exePath) {
+		ver, err := GetFileVersion(exePath)
+		if err == nil {
+			return ver
+		} else {
+			logger.Errorln(ver)
+		}
+	}
+	return "-"
 }

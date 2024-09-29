@@ -70,6 +70,9 @@ func addUpdateCron(data *SettingsData) {
 			_ = data.SHA1.Set(chromeInfo.Sha1)
 			_ = data.SHA256.Set(chromeInfo.Sha256)
 			_ = data.downBtnStatus.Set(false)
+			oldVer := GetVersion(data, "chrome.exe")
+			logger.Info("chrome version:", oldVer)
+			_ = data.oldVer.Set(oldVer)
 			ov, _ := data.oldVer.Get()
 			cv, _ := data.curVer.Get()
 			if cv != ov {

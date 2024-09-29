@@ -135,6 +135,9 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	bar := container.NewBorder(nil, nil, buttons, nil, folderEntry)
 	curVerLabel := widget.NewLabelWithData(data.curVer)
 	curVerLabel.TextStyle.Bold = true
+	oldVer := GetVersion(data, "chrome.exe")
+	logger.Info("chrome version:", oldVer)
+	_ = data.oldVer.Set(oldVer)
 	form := widget.NewForm(
 		&widget.FormItem{Text: LoadString("InstallLabel"), Widget: bar},
 		&widget.FormItem{Text: LoadString("BranchLabel"), Widget: versionRadio},

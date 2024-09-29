@@ -73,6 +73,9 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	}))
 	curVerLabel := widget.NewLabelWithData(data.curPlusVer)
 	curVerLabel.TextStyle.Bold = true
+	oldPlusVer := GetVersion(data, "version.dll")
+	logger.Info("chrome++ version:", oldPlusVer)
+	_ = data.oldPlusVer.Set(oldPlusVer)
 	form := widget.NewForm(
 		&widget.FormItem{Text: LoadString("NowVerLabel"), Widget: widget.NewLabelWithData(data.oldPlusVer)},
 		&widget.FormItem{Text: LoadString("LatestVerLabel"), Widget: versionSelect},
