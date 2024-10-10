@@ -62,6 +62,7 @@ func settingsScreen(a fyne.App, win fyne.Window, data *SettingsData) fyne.Canvas
 		//_ = a.OpenURL(parseURL(url))
 		UpdateSelf(a, data, getString(updateUrl), updateBtnText)
 	})
+	newBtn.Hide()
 	go chromeUpdaterNew(data, updateUrl, newBtn)
 	updateBtnText.AddListener(binding.NewDataListener(func() {
 		newBtn.SetText(getString(updateBtnText))
