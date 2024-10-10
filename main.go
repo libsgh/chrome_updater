@@ -61,7 +61,11 @@ func main() {
 		handlerErr(err, "配置保存失败，请检查目录权限", win)
 	})
 	win.SetCloseIntercept(func() {
-		win.Hide()
+		if !getBool(data.autoUpdate) {
+			ap.Quit()
+		} else {
+			win.Hide()
+		}
 	})
 	win.ShowAndRun()
 }
