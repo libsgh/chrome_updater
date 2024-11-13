@@ -124,7 +124,6 @@ func installPlus(data *SettingsData, win fyne.Window) {
 	data.plusProcessStatus.Set(true)
 	sysInfo := getInfo()
 	parentPath, _ := data.installPath.Get()
-	downloadProgress.SetValue(0)
 	fileName := getFileName(url)
 	fileName = filepath.Join(parentPath, fileName)
 	fileSize, _ := getFileSize(url)

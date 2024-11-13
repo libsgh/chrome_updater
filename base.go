@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -211,22 +210,23 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 	} else {
 		downloadProgress.SetValue(0.95)
 		//解压覆盖
-		UnCompress7z(fileName, parentPath)
-		UnCompress7z(path.Join(parentPath, "chrome.7z"), parentPath)
-		p := path.Join(parentPath, "Chrome-bin")
+		//UUnCompress7z(fileName, parentPath)
+		UnCompressBy7Zip(fileName, parentPath)
+		UnCompress7z(filepath.Join(parentPath, "chrome.7z"), parentPath)
+		p := filepath.Join(parentPath, "Chrome-bin")
 		targetDir := filepath.Dir(p)
 		files, _ := os.ReadDir(p)
 		for _, f := range files {
-			os.Rename(filepath.Join(p, f.Name()), path.Join(targetDir, f.Name()))
+			_ = os.Rename(filepath.Join(p, f.Name()), filepath.Join(targetDir, f.Name()))
 		}
 		//清理文件
 		_ = os.Remove(p)
 		_ = os.Remove(filepath.Join(parentPath, "chrome.7z"))
 		if !getBool(data.remainInstallFileSettings) {
-			os.Remove(fileName)
+			_ = os.Remove(fileName)
 		}
 		if !getBool(data.remainHistoryFileSettings) {
-			os.RemoveAll(filepath.Join(parentPath, getString(data.oldVer)))
+			_ = os.RemoveAll(filepath.Join(parentPath, getString(data.oldVer)))
 		}
 		downloadProgress.SetValue(1)
 		data.oldVer.Set(getString(data.curVer))

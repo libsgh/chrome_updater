@@ -475,3 +475,34 @@ func GetVersion(sd *SettingsData, fileName string) string {
 	}
 	return "-"
 }
+func UnCompressBy7Zip(filePath, targetDir string) {
+	var data []byte
+	if runtime.GOARCH == "386" {
+		data = resource7z7za386Exe.Content()
+	} else if runtime.GOARCH == "amd64" {
+		data = resource7z7zaamd64Exe.Content()
+	} else if runtime.GOARCH == "arm64" {
+		data = resource7z7zaarm64Exe.Content()
+	}
+	appDataDir := os.Getenv("APPDATA")
+	if appDataDir == "" {
+		appDataDir = os.TempDir()
+	}
+	zipExePath := filepath.Join(appDataDir, "chrome_updater", "7za.exe")
+	if !fileExist(zipExePath) {
+		err := os.WriteFile(zipExePath, data, 0644)
+		if err != nil {
+			logger.Error("write file:", err)
+			return
+		}
+	}
+	if fileExist(filepath.Join(targetDir, "chrome.7z")) {
+		_ = os.RemoveAll(filepath.Join(targetDir, "chrome.7z"))
+	}
+	cmd := exec.Command("cmd.exe", "/c", zipExePath, "e", filePath, "-o"+targetDir, "-aoa", "-bb0")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	err := cmd.Run()
+	if err != nil {
+		logger.Errorf("unzip err: %v\n", err)
+	}
+}
