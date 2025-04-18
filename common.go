@@ -145,20 +145,20 @@ func mergeChunk(chunkPath string, output *os.File) error {
 func getFileName(fileURL string) string {
 	parsedURL, err := url.Parse(fileURL)
 	if err != nil {
-		fmt.Println("Failed to parse URL:", err)
+		logger.Error("Failed to parse URL:", err)
 		return ""
 	}
 	filename := path.Base(parsedURL.Path)
 	return filename
 }
 
-func unzip(zipFile string, filterNames ...string) {
+func unzip(zipFile string, filterNames ...string) error {
 	parentPath := filepath.Dir(zipFile)
 	// 打开 ZIP 文件
 	r, err := zip.OpenReader(zipFile)
 	if err != nil {
 		logger.Errorln("无法打开 ZIP 文件:", err)
-		return
+		return err
 	}
 	defer r.Close()
 	// 遍历 ZIP 文件中的文件并解压指定文件名的文件
@@ -167,30 +167,31 @@ func unzip(zipFile string, filterNames ...string) {
 			if file.Name == targetFileName {
 				rc, err := file.Open()
 				if err != nil {
-					logger.Errorln("无法打开 ZIP 文件中的文件:", err)
-					return
+					logger.Error("无法打开 ZIP 文件中的文件:", err)
+					return err
 				}
 				defer rc.Close()
 
 				// 创建解压后的文件
 				newFile, err := os.Create(filepath.Join(parentPath, file.Name))
 				if err != nil {
-					logger.Errorln("无法创建解压后的文件:", err)
-					return
+					logger.Error("无法创建解压后的文件:", err)
+					return err
 				}
 				defer newFile.Close()
 
 				// 将 ZIP 文件中的内容解压到新文件中
 				_, err = io.Copy(newFile, rc)
 				if err != nil {
-					fmt.Println("无法解压 ZIP 文件中的内容:", err)
-					return
+					logger.Error("无法解压 ZIP 文件中的内容:", err)
+					return err
 				}
-				logger.Errorln("解压文件:", file.Name)
+				logger.Error("解压文件:", file.Name)
 			}
 		}
 	}
 	logger.Debug("解压完成.")
+	return nil
 }
 
 // 7z解压缩
@@ -222,10 +223,11 @@ func UnCompress7z(filePath, targetDir string) {
 	}
 }
 
-func UnCompress7zFilter(filePath, targetDir, filterName string) {
+func UnCompress7zFilter(filePath, targetDir, filterName string) error {
 	r, err := sevenzip.OpenReader(filePath)
 	if err != nil {
-		logger.Panic(err)
+		logger.Error(err)
+		return err
 	}
 	defer r.Close()
 	for _, file := range r.File {
@@ -237,31 +239,33 @@ func UnCompress7zFilter(filePath, targetDir, filterName string) {
 			defer rc.Close()
 			fp := path.Join(targetDir, file.Name)
 			if file.FileInfo().IsDir() {
-				os.MkdirAll(fp, os.ModePerm)
+				_ = os.MkdirAll(fp, os.ModePerm)
 			} else {
 				outputFile, err := os.Create(fp)
 				if err != nil {
-					logger.Panic(err)
+					logger.Error(err)
+					return err
 				}
 				defer outputFile.Close()
 				_, err = io.Copy(outputFile, rc)
 			}
 		}
 	}
+	return nil
 }
 
 // 计算文件SHA1
 func sumFileSHA1(filePath string) string {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("无法打开文件:", err)
+		logger.Error("无法打开文件:", err)
 		return ""
 	}
 	defer file.Close()
 	hash := sha1.New()
 	_, err = io.Copy(hash, file)
 	if err != nil {
-		fmt.Println("读取文件错误:", err)
+		logger.Error("读取文件错误:", err)
 		return ""
 	}
 	hashValue := hash.Sum(nil)
@@ -276,7 +280,7 @@ func fileExist(filePath string) bool {
 		if os.IsNotExist(err) {
 			return false
 		} else {
-			fmt.Println("发生错误:", err)
+			logger.Error("发生错误:", err)
 		}
 		return false
 	}
@@ -303,7 +307,7 @@ func isProcessExist(appName string) bool {
 	output, _ := cmd.Output()
 	n := strings.Index(string(output), "System")
 	if n == -1 {
-		fmt.Println("no find")
+		logger.Error("no find")
 		os.Exit(1)
 	}
 	data := string(output)[n:]
@@ -484,11 +488,12 @@ func UnCompressBy7Zip(filePath, targetDir string) {
 	} else if runtime.GOARCH == "arm64" {
 		data = resource7z7zaarm64Exe.Content()
 	}
-	appDataDir := os.Getenv("APPDATA")
-	if appDataDir == "" {
-		appDataDir = os.TempDir()
+	configPath := getConfigPath()
+	zipDir := filepath.Dir(configPath)
+	if !fileExist(zipDir) {
+		_ = os.MkdirAll(zipDir, os.ModePerm)
 	}
-	zipExePath := filepath.Join(appDataDir, "chrome_updater", "7za.exe")
+	zipExePath := filepath.Join(zipDir, "7za.exe")
 	if !fileExist(zipExePath) {
 		err := os.WriteFile(zipExePath, data, 0644)
 		if err != nil {
