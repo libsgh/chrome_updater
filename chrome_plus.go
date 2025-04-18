@@ -153,7 +153,7 @@ func setProxy(sd *SettingsData, reqUrl string) (*http.Client, string) {
 		} else {
 			if getString(sd.proxyType) == "HTTP(S)" && !strings.HasPrefix(ghProxy, "http") {
 				ghProxy = "http://" + ghProxy
-			} else if getString(sd.proxyType) == "SOCKS5" && !strings.HasPrefix(ghProxy, "http") {
+			} else if getString(sd.proxyType) == "SOCKS5" && !strings.HasPrefix(ghProxy, "socks5") {
 				ghProxy = "socks5://" + ghProxy
 			}
 			urli := url.URL{}
