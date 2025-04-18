@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -150,6 +151,11 @@ func setProxy(sd *SettingsData, reqUrl string) (*http.Client, string) {
 		if getString(sd.proxyType) == "GH-PROXY" {
 			reqUrl = pathJoin(ghProxy, reqUrl)
 		} else {
+			if getString(sd.proxyType) == "HTTP(S)" && !strings.HasPrefix(ghProxy, "http") {
+				ghProxy = "http://" + ghProxy
+			} else if getString(sd.proxyType) == "SOCKS5" && !strings.HasPrefix(ghProxy, "http") {
+				ghProxy = "socks5://" + ghProxy
+			}
 			urli := url.URL{}
 			urlproxy, _ := urli.Parse(ghProxy)
 			client.Transport = &http.Transport{
