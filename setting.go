@@ -116,17 +116,23 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 		return ""
 	}
 	GoroutineDownload(sd, url, fileName, 4, 50*1024, 500, fileSize, updaterDownloadProgress, wg)
-	downloadedBytes = 0
-	updaterPath := filepath.Join(parentPath, exeName)
-	if fileExist(updaterPath) {
-		os.Rename(updaterPath, filepath.Join(parentPath, exeName+"_old"))
+	if downloadedBytes > 0 {
+		downloadedBytes = 0
+		if fileExist(fileName) {
+			updaterPath := filepath.Join(parentPath, exeName)
+			if fileExist(updaterPath) {
+				os.Rename(updaterPath, filepath.Join(parentPath, exeName+"_old"))
+			}
+			err = unzip(fileName, exeName)
+			if err == nil {
+				_ = os.Remove(fileName)
+				cmd := exec.Command("cmd.exe", "/C", updaterPath)
+				cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+				a.Quit()
+				_ = cmd.Start()
+			}
+		}
 	}
-	unzip(fileName, exeName)
-	_ = os.Remove(fileName)
-	cmd := exec.Command("cmd.exe", "/C", updaterPath)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	a.Quit()
-	_ = cmd.Start()
 }
 func chromeUpdaterNew(sd *SettingsData, updateUrl binding.String, newBtn *widget.Button) error {
 	apiUrl := "https://raw.githubusercontent.com/libsgh/ghapi-json-generator/output/v2/repos/libsgh/chrome_updater/releases%3Fper_page%3D10/data.json"
