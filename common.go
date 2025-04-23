@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"github.com/bodgit/sevenzip"
+	"golang.org/x/sys/windows"
 	"io"
 	"net/http"
 	"net/url"
@@ -299,26 +300,40 @@ func getStringList(v binding.StringList) []string {
 	return gv
 }
 func isProcessExist(appName string) bool {
-	appary := make(map[string]int)
-	cmd := exec.Command("cmd", "/C", "tasklist")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
+	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		fmt.Printf("CreateToolhelp32Snapshot failed: %v\n", err)
+		return false
 	}
-	output, _ := cmd.Output()
-	n := strings.Index(string(output), "System")
-	if n == -1 {
-		logger.Error("no find")
-		os.Exit(1)
-	}
-	data := string(output)[n:]
-	fields := strings.Fields(data)
-	for k, v := range fields {
-		if v == appName {
-			appary[appName], _ = strconv.Atoi(fields[k+1])
+	defer windows.CloseHandle(snapshot)
 
+	var pe windows.ProcessEntry32
+	pe.Size = uint32(unsafe.Sizeof(pe))
+
+	// 枚举第一个进程
+	err = windows.Process32First(snapshot, &pe)
+	if err != nil {
+		fmt.Printf("Process32First failed: %v\n", err)
+		return false
+	}
+
+	for {
+		// 比较进程名
+		exeName := windows.UTF16ToString(pe.ExeFile[:])
+		if exeName == appName+".exe" || exeName == appName {
 			return true
 		}
+
+		// 枚举下一个进程
+		err = windows.Process32Next(snapshot, &pe)
+		if err != nil {
+			if err == windows.ERROR_NO_MORE_FILES {
+				break
+			}
+			fmt.Printf("Process32Next failed: %v\n", err)
+		}
 	}
+
 	return false
 }
 func alertInfo(message string, win fyne.Window) {
@@ -505,6 +520,7 @@ func UnCompressBy7Zip(filePath, targetDir string) {
 		_ = os.RemoveAll(filepath.Join(targetDir, "chrome.7z"))
 	}
 	cmd := exec.Command("cmd.exe", "/c", zipExePath, "e", filePath, "-o"+targetDir, "-aoa", "-bb0")
+	logger.Debug(cmd.String())
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	err := cmd.Run()
 	if err != nil {
