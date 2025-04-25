@@ -115,7 +115,7 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 		_ = btnText.Set(percentageStr)
 		return ""
 	}
-	GoroutineDownload(sd, url, fileName, 4, 50*1024, 500, fileSize, updaterDownloadProgress, wg)
+	GoroutineDownload(sd, url, fileName, 4, 2*1024*1024, 500, fileSize, updaterDownloadProgress, wg)
 	if downloadedBytes > 0 {
 		downloadedBytes = 0
 		if fileExist(fileName) {
