@@ -4,5 +4,5 @@ Website = "https://chrome.noki.eu.org"
   Icon = "assets/img/chrome.png"
   Name = "chrome_updater"
   ID = "com.github.libs.chrome"
-  Version = "2.2"
+  Version = "2.3"
   Build = 0
