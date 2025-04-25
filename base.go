@@ -211,8 +211,12 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 		downloadProgress.SetValue(0.95)
 		//解压覆盖
 		//UUnCompress7z(fileName, parentPath)
-		UnCompressBy7Zip(fileName, parentPath)
-		UnCompress7z(filepath.Join(parentPath, "chrome.7z"), parentPath)
+		if !strings.HasSuffix(fileName, "uncompressed.exe") {
+			UnCompressBy7Zip(fileName, parentPath)
+			UnCompress7z(filepath.Join(parentPath, "chrome.7z"), parentPath)
+		} else {
+			UnCompress7z(fileName, parentPath)
+		}
 		p := filepath.Join(parentPath, "Chrome-bin")
 		targetDir := filepath.Dir(p)
 		files, _ := os.ReadDir(p)
@@ -221,7 +225,9 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 		}
 		//清理文件
 		_ = os.Remove(p)
-		_ = os.Remove(filepath.Join(parentPath, "chrome.7z"))
+		if !strings.HasSuffix(fileName, "uncompressed.exe") {
+			_ = os.Remove(filepath.Join(parentPath, "chrome.7z"))
+		}
 		if !getBool(data.remainInstallFileSettings) {
 			_ = os.Remove(fileName)
 		}
