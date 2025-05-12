@@ -56,7 +56,8 @@ var runFlag = 0
 func addUpdateCron(data *SettingsData) {
 	spec := "0 0 0/1 * * ?"
 	_, _ = cronManager.AddFunc(spec, func() {
-		chromeInUse := isProcessExist("chrome.exe")
+		parentPath, _ := data.installPath.Get()
+		chromeInUse := isProcessExist(filepath.Join(parentPath, "chrome.exe"))
 		if runFlag == 1 || chromeInUse {
 			return
 		}
@@ -109,7 +110,7 @@ func autoInstall(data *SettingsData) {
 		p := path.Join(parentPath, "Chrome-bin")
 		targetDir := filepath.Dir(p)
 		files, _ := os.ReadDir(p)
-		chromeInUse := isProcessExist("chrome.exe")
+		chromeInUse := isProcessExist(filepath.Join(parentPath, "chrome.exe"))
 		if !chromeInUse {
 			for _, f := range files {
 				_ = os.Rename(filepath.Join(p, f.Name()), path.Join(targetDir, f.Name()))

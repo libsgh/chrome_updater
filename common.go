@@ -4,11 +4,14 @@ import (
 	"archive/zip"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"github.com/bodgit/sevenzip"
+	"github.com/go-ole/go-ole"
+	"github.com/go-ole/go-ole/oleutil"
 	"golang.org/x/sys/windows"
 	"io"
 	"net/http"
@@ -299,7 +302,11 @@ func getStringList(v binding.StringList) []string {
 	gv, _ := v.Get()
 	return gv
 }
-func isProcessExist(appName string) bool {
+func isProcessExist(appPath string) bool {
+	// Normalize the input path
+	appPath = filepath.Clean(appPath)
+
+	// Create a snapshot of all processes
 	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if err != nil {
 		fmt.Printf("CreateToolhelp32Snapshot failed: %v\n", err)
@@ -310,7 +317,7 @@ func isProcessExist(appName string) bool {
 	var pe windows.ProcessEntry32
 	pe.Size = uint32(unsafe.Sizeof(pe))
 
-	// 枚举第一个进程
+	// Get the first process
 	err = windows.Process32First(snapshot, &pe)
 	if err != nil {
 		fmt.Printf("Process32First failed: %v\n", err)
@@ -318,13 +325,27 @@ func isProcessExist(appName string) bool {
 	}
 
 	for {
-		// 比较进程名
-		exeName := windows.UTF16ToString(pe.ExeFile[:])
-		if exeName == appName+".exe" || exeName == appName {
-			return true
+		// Open the process to query its full path
+		hProcess, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pe.ProcessID)
+		if err == nil {
+			// Get the full executable path
+			var path [windows.MAX_PATH]uint16
+			pathLen := uint32(len(path))
+			err = windows.QueryFullProcessImageName(hProcess, 0, &path[0], &pathLen)
+			windows.CloseHandle(hProcess)
+			if err == nil {
+				// Convert UTF16 path to string and normalize
+				exePath := windows.UTF16ToString(path[:pathLen])
+				exePath = filepath.Clean(exePath)
+
+				// Compare paths (case-insensitive)
+				if strings.EqualFold(appPath, exePath) {
+					return true
+				}
+			}
 		}
 
-		// 枚举下一个进程
+		// Move to the next process
 		err = windows.Process32Next(snapshot, &pe)
 		if err != nil {
 			if err == windows.ERROR_NO_MORE_FILES {
@@ -451,7 +472,7 @@ func GetFileVersion(path string) (string, error) {
 	var blockLen uint32
 	ret, _, err = procVerQueryValue.Call(
 		uintptr(unsafe.Pointer(&buffer[0])),
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr("\\VarFileInfo\\Translation"))),
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr("\\VarFileInfo\\Translation"))),
 		uintptr(unsafe.Pointer(&block)),
 		uintptr(unsafe.Pointer(&blockLen)),
 	)
@@ -471,7 +492,7 @@ func GetFileVersion(path string) (string, error) {
 	// Query the version value
 	ret, _, err = procVerQueryValue.Call(
 		uintptr(unsafe.Pointer(&buffer[0])),
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(subBlock))),
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(subBlock))),
 		uintptr(unsafe.Pointer(&block)),
 		uintptr(unsafe.Pointer(&blockLen)),
 	)
@@ -519,11 +540,109 @@ func UnCompressBy7Zip(filePath, targetDir string) {
 	if fileExist(filepath.Join(targetDir, "chrome.7z")) {
 		_ = os.RemoveAll(filepath.Join(targetDir, "chrome.7z"))
 	}
-	cmd := exec.Command("cmd.exe", "/c", zipExePath, "e", filePath, "-o"+targetDir, "-aoa", "-bb0")
+	cmd := exec.Command(zipExePath, "e", filePath, "-o"+targetDir, "-aoa", "-bb0")
 	logger.Debug(cmd.String())
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	err := cmd.Run()
 	if err != nil {
 		logger.Errorf("unzip err: %v\n", err)
 	}
+}
+
+func makeLink(src, dst string) error {
+	defer ole.CoUninitialize()
+	err := ole.CoInitializeEx(0, ole.COINIT_APARTMENTTHREADED|ole.COINIT_SPEED_OVER_MEMORY)
+	if err != nil {
+		return err
+	}
+	oleShellObject, err := oleutil.CreateObject("WScript.Shell")
+	if err != nil {
+		return err
+	}
+	defer oleShellObject.Release()
+	wShell, err := oleShellObject.QueryInterface(ole.IID_IDispatch)
+	if err != nil {
+		return err
+	}
+	defer wShell.Release()
+	cs, err := oleutil.CallMethod(wShell, "CreateShortcut", dst)
+	if err != nil {
+		return err
+	}
+	dispatch := cs.ToIDispatch()
+	_, err = oleutil.PutProperty(dispatch, "TargetPath", src)
+	if err != nil {
+		return err
+	}
+	_, err = oleutil.CallMethod(dispatch, "Save")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getDesktopPathKnownFolder() (string, error) {
+	folderID := syscall.GUID{
+		Data1: 0xB4BFCC3A,
+		Data2: 0xDB2C,
+		Data3: 0x424C,
+		Data4: [8]byte{0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41},
+	}
+
+	var pathPtr uintptr
+	shell32 := syscall.NewLazyDLL("shell32.dll")
+	shGetKnownFolderPath := shell32.NewProc("SHGetKnownFolderPath")
+
+	ret, _, err := shGetKnownFolderPath.Call(
+		uintptr(unsafe.Pointer(&folderID)),
+		uintptr(0),
+		uintptr(0),
+		uintptr(unsafe.Pointer(&pathPtr)),
+	)
+
+	if ret != 0 {
+		return "", fmt.Errorf("SHGetKnownFolderPath failed: %v", err)
+	}
+
+	ole32 := syscall.NewLazyDLL("ole32.dll")
+	coTaskMemFree := ole32.NewProc("CoTaskMemFree")
+	defer coTaskMemFree.Call(pathPtr)
+
+	desktopPath := windows.UTF16PtrToString((*uint16)(unsafe.Pointer(pathPtr)))
+	return desktopPath, nil
+}
+
+func getDesktopPathFallback() (string, error) {
+	var p [syscall.MAX_PATH]uint16
+	shell32 := syscall.NewLazyDLL("shell32.dll")
+	shGetFolderPath := shell32.NewProc("SHGetFolderPathW")
+
+	ret, _, err := shGetFolderPath.Call(
+		uintptr(0),
+		uintptr(0x00),
+		uintptr(0),
+		uintptr(0),
+		uintptr(unsafe.Pointer(&p[0])),
+	)
+
+	if ret != 0 {
+		return "", fmt.Errorf("SHGetFolderPath failed: %v", err)
+	}
+
+	desktopPath := syscall.UTF16ToString(p[:])
+	return desktopPath, nil
+}
+
+func GetDesktopPath() (string, error) {
+	p, err := getDesktopPathKnownFolder()
+	if err == nil {
+		return p, nil
+	}
+
+	p, err = getDesktopPathFallback()
+	if err == nil {
+		return p, nil
+	}
+
+	return "", errors.New("failed to get desktop path")
 }

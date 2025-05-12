@@ -6,6 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.4.5
 	github.com/BurntSushi/toml v1.3.2
 	github.com/bodgit/sevenzip v1.5.1
+	github.com/go-ole/go-ole v1.2.6
 	github.com/json-iterator/go v1.1.11
 	github.com/robfig/cron/v3 v3.0.0
 	go.uber.org/zap v1.27.0

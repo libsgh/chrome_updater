@@ -39,7 +39,8 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		if cv == ov && fileExist(path.Join(getString(data.installPath), "version.dll")) {
 			alertInfo(LoadString("NoNeedUpdateMsg"), win)
 		} else {
-			chromeInUse := isProcessExist("chrome.exe")
+			parentPath, _ := data.installPath.Get()
+			chromeInUse := isProcessExist(filepath.Join(parentPath, "chrome.exe"))
 			if chromeInUse {
 				alertInfo(LoadString("ChromeRunningMsg"), win)
 			} else {

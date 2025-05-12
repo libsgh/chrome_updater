@@ -56,4 +56,7 @@ DialogTooltipTitle = "提示"
 DialogConfirmLabel = "确认"
 DialogCloseLabel = "关闭"
 AutoUpdateProgress = "自动更新中..."
+CreateLnkBtnLabel = "创建快捷方式"
+CreateLnkFailMsg = "创建失败!"
+CreateLnkSuccessMsg = "创建成功!"
 

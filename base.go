@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -52,13 +53,22 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
 		syncChromeInfo(data, sysInfo)
 	})
+	createLnkBtn := widget.NewButtonWithIcon(LoadString("CreateLnkBtnLabel"), theme.ContentAddIcon(), func() {
+		err := createDeskLnk(data)
+		if err != nil {
+			alertInfo(LoadString("CreateLnkFailMsg"), win)
+		} else {
+			alertInfo(LoadString("CreateLnkSuccessMsg"), win)
+		}
+	})
 	downloadBtn = widget.NewButtonWithIcon(LoadString("InstallBtnLabel"), theme.DownloadIcon(), func() {
 		ov, _ := data.oldVer.Get()
 		cv, _ := data.curVer.Get()
 		if cv == ov {
 			alertInfo(LoadString("NoNeedUpdateMsg"), win)
 		} else {
-			chromeInUse := isProcessExist("chrome.exe")
+			parentPath, _ := data.installPath.Get()
+			chromeInUse := isProcessExist(filepath.Join(parentPath, "chrome.exe"))
 			if chromeInUse {
 				alertInfo(LoadString("ChromeRunningMsg"), win)
 			} else {
@@ -177,7 +187,7 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		go syncChromeInfo(data, sysInfo)
 	}
 	logger.Debug("Base tab load success.")
-	return container.New(&buttonLayout{}, form, container.NewVBox(downloadProgress, container.NewGridWithColumns(2, checkBtn, downloadBtn)))
+	return container.New(&buttonLayout{}, form, container.NewVBox(downloadProgress, container.NewGridWithColumns(3, checkBtn, downloadBtn, createLnkBtn)))
 }
 func syncChromeInfo(data *SettingsData, sysInfo SysInfo) {
 	chromeInfo := getLocalChromeInfo(getVk(data.branch, sysInfo))
@@ -238,8 +248,28 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 		data.oldVer.Set(getString(data.curVer))
 		defer data.checkBtnStatus.Set(false)
 		defer data.folderEntryStatus.Set(false)
+		//_ = createDeskLnk(data)
 	}
+}
 
+func createDeskLnk(data *SettingsData) error {
+	parentPath, _ := data.installPath.Get()
+	exePath := filepath.Join(parentPath, "chrome.exe")
+	if fileExist(exePath) {
+		desktopPath, err := GetDesktopPath()
+		if err != nil {
+			logger.Debug(err)
+			return err
+		}
+		logger.Debug("Desktop Path:", desktopPath)
+		linkPath := filepath.Join(desktopPath, "Google Chrome.lnk")
+		err = makeLink(exePath, linkPath)
+		if err != nil {
+			logger.Debug(err)
+		}
+		return err
+	}
+	return errors.New("executable file not found")
 }
 
 // 初始化安装目录
