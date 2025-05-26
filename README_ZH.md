@@ -25,3 +25,5 @@
 ## 鸣谢
 - [Shuax](https://github.com/shuax)
 - [Bush2021](https://github.com/Bush2021)
+- [NodeSupport](https://github.com/NodeSeekDev/NodeSupport) 赞助了本项目
+- [![image](https://fs.noki.eu.org/f/rInqmum2Er2u)](https://yxvm.com/)

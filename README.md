@@ -26,3 +26,5 @@ Run `chrome_updater.exe -debug=1` will get a `debug.log` file, please bring it w
 ## Thanks
 - [Shuax](https://github.com/shuax)
 - [Bush2021](https://github.com/Bush2021)
+- [NodeSupport](https://github.com/NodeSeekDev/NodeSupport) Sponsored this project
+- [![image](https://fs.noki.eu.org/f/rInqmum2Er2u)](https://yxvm.com/)
