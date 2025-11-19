@@ -269,7 +269,9 @@ func tryRequest(req *http.Request, client *http.Client) (ChromeInfo, error) {
 func getHttpProxyClient(sd *SettingsData) *http.Client {
 	ghProxy := getString(sd.ghProxy)
 	if ghProxy == "" {
-		return &http.Client{Timeout: 30 * time.Second}
+		return &http.Client{Timeout: 30 * time.Second, Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+		}}
 	}
 
 	// Ensure proper proxy URL prefix
