@@ -5,8 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -182,45 +184,112 @@ var chromeMap = map[string]string{
 	"mac_canary":       MAC_CANARY}
 
 // 本地获取Chrome版本信息
-func getLocalChromeInfo(key string) ChromeInfo {
-	url := "https://tools.google.com/service/update2"
+func getLocalChromeInfo(key string, data *SettingsData) (ChromeInfo, error) {
+	updateUrl := "https://tools.google.com/service/update2"
 	body := []byte(chromeMap[key])
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", updateUrl, bytes.NewBuffer(body))
 	if err != nil {
 		logger.Error(err)
+		return ChromeInfo{}, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Google Update/1.3.36.152;winhttp")
-	client := &http.Client{}
+
+	// First try without proxy
+	info, err := tryRequest(req, nil)
+	if err == nil {
+		return info, nil
+	}
+	logger.Warnf("Direct request failed: %v, retrying with proxy", err)
+
+	// If direct request failed, try with proxy
+	proxyClient := getHttpProxyClient(data)
+	if proxyClient.Transport != nil { // Only if proxy is configured
+		return tryRequest(req, proxyClient)
+	}
+
+	return ChromeInfo{}, fmt.Errorf("all request attempts failed (last error: %v)", err)
+}
+
+func tryRequest(req *http.Request, client *http.Client) (ChromeInfo, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Panic(err)
+		return ChromeInfo{}, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ChromeInfo{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error(err)
+		return ChromeInfo{}, err
 	}
+
 	d := &Response{}
-	xml.Unmarshal(responseBody, d)
+	if err := xml.Unmarshal(responseBody, d); err != nil {
+		return ChromeInfo{}, err
+	}
+
 	info := ChromeInfo{}
 	name := d.App.Updatecheck.Manifest.Packages.Package.Name
 	var urls []string
 	for _, s := range d.App.Updatecheck.Urls.URL {
 		urls = append(urls, s.Codebase+name)
 	}
-
 	info.Urls = urls
 	info.Version = d.App.Updatecheck.Manifest.Version
 	info.Sha256 = strings.ToUpper(d.App.Updatecheck.Manifest.Packages.Package.HashSha256)
+
 	bts, err := base64.StdEncoding.DecodeString(d.App.Updatecheck.Manifest.Packages.Package.Hash)
 	if err != nil {
-		logger.Errorf("Base64 decoding error: %v\n", err)
+		logger.Errorf("Base64 decoding error: %v", err)
+		return ChromeInfo{}, err
 	}
+
 	hexString := hex.EncodeToString(bts)
 	info.Sha1 = strings.ToUpper(hexString)
-	fileSize, _ := strconv.ParseInt(d.App.Updatecheck.Manifest.Packages.Package.Size, 10, 64)
+
+	fileSize, err := strconv.ParseInt(d.App.Updatecheck.Manifest.Packages.Package.Size, 10, 64)
+	if err != nil {
+		logger.Errorf("Size parsing error: %v", err)
+		return ChromeInfo{}, err
+	}
 	info.Size = fileSize
 	info.Time = time.Now().UnixMilli()
-	return info
+
+	return info, nil
+}
+
+func getHttpProxyClient(sd *SettingsData) *http.Client {
+	ghProxy := getString(sd.ghProxy)
+	if ghProxy == "" {
+		return &http.Client{Timeout: 30 * time.Second}
+	}
+
+	// Ensure proper proxy URL prefix
+	proxyType := getString(sd.proxyType)
+	if proxyType == "HTTP(S)" && !strings.HasPrefix(ghProxy, "http") {
+		ghProxy = "http://" + ghProxy
+	} else if proxyType == "SOCKS5" && !strings.HasPrefix(ghProxy, "socks5") {
+		ghProxy = "socks5://" + ghProxy
+	}
+
+	urlproxy, err := url.Parse(ghProxy)
+	if err != nil {
+		logger.Errorf("Invalid proxy URL: %v", err)
+		return &http.Client{Timeout: 30 * time.Second}
+	}
+
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(urlproxy),
+		},
+	}
 }

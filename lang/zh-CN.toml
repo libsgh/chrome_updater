@@ -59,4 +59,5 @@ AutoUpdateProgress = "自动更新中..."
 CreateLnkBtnLabel = "创建快捷方式"
 CreateLnkFailMsg = "创建失败!"
 CreateLnkSuccessMsg = "创建成功!"
+UpdateCheckErrorMsg = "版本查询失败,请检查代理设置!"
 

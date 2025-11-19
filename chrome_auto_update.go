@@ -64,7 +64,10 @@ func addUpdateCron(data *SettingsData) {
 		if getString(data.oldVer) != "-" {
 			runFlag = 1
 			sysInfo := getInfo()
-			chromeInfo := getLocalChromeInfo(getVk(data.branch, sysInfo))
+			chromeInfo, err := getLocalChromeInfo(getVk(data.branch, sysInfo), data)
+			if err != nil {
+				return
+			}
 			_ = data.curVer.Set(chromeInfo.Version)
 			_ = data.fileSize.Set(formatFileSize(chromeInfo.Size))
 			_ = data.urlList.Set(chromeInfo.Urls)

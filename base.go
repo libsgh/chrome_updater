@@ -51,7 +51,10 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		}
 	}))
 	checkBtn := widget.NewButtonWithIcon(LoadString("CheckBtnLabel"), theme.SearchIcon(), func() {
-		syncChromeInfo(data, sysInfo)
+		err := syncChromeInfo(data, sysInfo)
+		if err != nil {
+			alertInfo(LoadString("UpdateCheckErrorMsg"), win)
+		}
 	})
 	createLnkBtn := widget.NewButtonWithIcon(LoadString("CreateLnkBtnLabel"), theme.ContentAddIcon(), func() {
 		err := createDeskLnk(data)
@@ -184,19 +187,28 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		}
 	}))
 	if !getBool(data.autoUpdate) {
-		go syncChromeInfo(data, sysInfo)
+		go func() {
+			err := syncChromeInfo(data, sysInfo)
+			if err != nil {
+				alertInfo(LoadString("UpdateCheckErrorMsg"), win)
+			}
+		}()
 	}
 	logger.Debug("Base tab load success.")
 	return container.New(&buttonLayout{}, form, container.NewVBox(downloadProgress, container.NewGridWithColumns(3, checkBtn, downloadBtn, createLnkBtn)))
 }
-func syncChromeInfo(data *SettingsData, sysInfo SysInfo) {
-	chromeInfo := getLocalChromeInfo(getVk(data.branch, sysInfo))
+func syncChromeInfo(data *SettingsData, sysInfo SysInfo) error {
+	chromeInfo, err := getLocalChromeInfo(getVk(data.branch, sysInfo), data)
+	if err != nil {
+		return err
+	}
 	data.curVer.Set(chromeInfo.Version)
 	data.fileSize.Set(formatFileSize(chromeInfo.Size))
 	data.urlList.Set(chromeInfo.Urls)
 	data.SHA1.Set(chromeInfo.Sha1)
 	data.SHA256.Set(chromeInfo.Sha256)
 	data.downBtnStatus.Set(false)
+	return nil
 }
 func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, installType int) {
 	data.checkBtnStatus.Set(true)
