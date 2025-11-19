@@ -5,4 +5,4 @@ Website = "https://chrome.noki.eu.org"
   Name = "chrome_updater"
   ID = "com.github.libs.chrome"
   Version = "2.5"
-  Build = 1
+  Build = 0
