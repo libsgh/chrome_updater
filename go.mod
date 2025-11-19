@@ -1,6 +1,6 @@
 module github.com/libsgh/chrome_updater
 
-go 1.25
+go 1.24
 
 require (
 	fyne.io/fyne/v2 v2.7.1
