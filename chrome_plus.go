@@ -147,7 +147,9 @@ func installPlus(data *SettingsData, win fyne.Window) {
 }
 func setProxy(sd *SettingsData, reqUrl string) (*http.Client, string) {
 	ghProxy := getString(sd.ghProxy)
-	client := http.Client{Timeout: time.Second * time.Duration(30)}
+	client := http.Client{Timeout: time.Second * time.Duration(5), Transport: &http.Transport{
+		Proxy: GetProxyURL(),
+	}}
 	if ghProxy != "" {
 		if getString(sd.proxyType) == "GH-PROXY" {
 			reqUrl = pathJoin(ghProxy, reqUrl)

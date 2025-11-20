@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
+	"golang.org/x/sys/windows/registry"
 	"io"
 	"net/http"
 	"net/url"
@@ -213,7 +214,7 @@ func getLocalChromeInfo(key string, data *SettingsData) (ChromeInfo, error) {
 
 func tryRequest(req *http.Request, client *http.Client) (ChromeInfo, error) {
 	if client == nil {
-		client = &http.Client{Timeout: 30 * time.Second}
+		client = &http.Client{Timeout: 5 * time.Second}
 	}
 
 	resp, err := client.Do(req)
@@ -269,8 +270,8 @@ func tryRequest(req *http.Request, client *http.Client) (ChromeInfo, error) {
 func getHttpProxyClient(sd *SettingsData) *http.Client {
 	ghProxy := getString(sd.ghProxy)
 	if ghProxy == "" {
-		return &http.Client{Timeout: 30 * time.Second, Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+		return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{
+			Proxy: GetProxyURL(),
 		}}
 	}
 
@@ -285,13 +286,45 @@ func getHttpProxyClient(sd *SettingsData) *http.Client {
 	urlproxy, err := url.Parse(ghProxy)
 	if err != nil {
 		logger.Errorf("Invalid proxy URL: %v", err)
-		return &http.Client{Timeout: 30 * time.Second}
+		return &http.Client{Timeout: 5 * time.Second}
 	}
 
 	return &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(urlproxy),
 		},
+	}
+}
+
+func GetSystemProxy() (enabled bool, proxyServer string, err error) {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.QUERY_VALUE)
+	if err != nil {
+		return false, "", err
+	}
+	defer key.Close()
+	enable, _, err := key.GetIntegerValue("ProxyEnable")
+	if err != nil {
+		return false, "", err
+	}
+
+	server, _, err := key.GetStringValue("ProxyServer")
+	if err != nil {
+		return false, "", err
+	}
+
+	return enable == 1, server, nil
+}
+
+func GetProxyURL() func(*http.Request) (*url.URL, error) {
+	return func(req *http.Request) (*url.URL, error) {
+		// 1. 检测系统代理
+		enabled, proxyServer, err := GetSystemProxy()
+		if err == nil && enabled && proxyServer != "" {
+			return url.Parse("http://" + proxyServer) // 假设是 HTTP 代理
+		}
+
+		// 2. 回退到环境变量
+		return http.ProxyFromEnvironment(req)
 	}
 }

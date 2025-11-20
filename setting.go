@@ -108,13 +108,13 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 	fileName := getFileName(url)
 	fileName = filepath.Join(parentPath, fileName)
 	fileSize, _ := getFileSize(url)
-	var wg = &sync.WaitGroup{}
 	updaterDownloadProgress := widget.NewProgressBar()
 	updaterDownloadProgress.TextFormatter = func() string {
 		percentageStr := fmt.Sprintf("%.1f%%", updaterDownloadProgress.Value*100.0/0.9)
 		_ = btnText.Set(percentageStr)
 		return ""
 	}
+	var wg = &sync.WaitGroup{}
 	GoroutineDownload(sd, url, fileName, 4, 2*1024*1024, 500, fileSize, updaterDownloadProgress, wg)
 	if downloadedBytes > 0 {
 		downloadedBytes = 0

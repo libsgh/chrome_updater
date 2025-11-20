@@ -224,7 +224,7 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 	fileName = filepath.Join(parentPath, fileName)
 	fileSize, _ := getFileSize(url)
 	var wg = &sync.WaitGroup{}
-	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 1000, fileSize, downloadProgress, wg)
+	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 30, fileSize, downloadProgress, wg)
 	downloadedBytes = 0
 	sha1 := sumFileSHA1(fileName)
 	if v, _ := data.SHA1.Get(); v != sha1 {
