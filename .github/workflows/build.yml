@@ -37,7 +37,7 @@ jobs:
         with:
           install-only: true
       - name: Package
-        run: fyne-cross windows -arch=${{ matrix.arch }} -go 1.26.4
+        run: fyne-cross windows -arch=${{ matrix.arch }}
       - name: Compress
         run: |
             mkdir ${GITHUB_WORKSPACE}/dist
