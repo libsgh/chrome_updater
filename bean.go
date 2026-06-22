@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/xml"
-	"fyne.io/fyne/v2/data/binding"
 	"time"
+
+	"fyne.io/fyne/v2/data/binding"
 )
 
 // ChromeInfo chrome信息
@@ -34,7 +35,8 @@ type SettingsData struct {
 	oldVer                    binding.String     //旧版本号
 	branch                    binding.String     //版本分支
 	curVer                    binding.String     //最新版本号
-	fileSize                  binding.String     //文件大小
+	fileSize                  binding.String     //文件大小(格式化显示)
+	fileSizeRaw               binding.Int        //文件大小(原始字节)
 	SHA1                      binding.String     //文件SHA1
 	SHA256                    binding.String     //文件SHA256
 	urlList                   binding.StringList //下载地址
@@ -46,6 +48,7 @@ type SettingsData struct {
 	oldPlusVer                binding.String     //已安装chrome_plus版本
 	curPlusVer                binding.String     //最新chrome_plus版本
 	plusDownloadUrl           binding.String     //最新chrome_plus下载地址
+	plusFileSizeRaw           binding.Int        //plus文件大小(原始字节)
 	plusBtnStatus             binding.Bool       //plus下载安装状态
 	plusProcessStatus         binding.Bool       //plus下载安装进度的进度条状态
 	processStatus             binding.Bool       //下载安装进度的进度条状态
@@ -55,23 +58,25 @@ type SettingsData struct {
 	langSettings              binding.String     //语言设置
 	ghProxy                   binding.String     //Github代理
 	proxyType                 binding.String     //代理类型
+	downloadChromeViaProxy    binding.Bool       //Chrome下载是否走代理
 	autoUpdate                binding.Bool       //自动更新
 }
 
 // 配置选项
 type Config struct {
-	InstallPath       string `json:"install_path"`        //安装目录
-	VersionBranch     string `json:"version_branch"`      //版本分支
-	DownloadChannel   string `json:"download_channel"`    //下载通道
-	OldPlusVer        string `json:"old_plus_ver"`        //已安装chrome_plus版本
-	ChromePlus        string `json:"chrome_plus"`         //chrome_plus
-	RemainInstallFile bool   `json:"remain_install_file"` //是否保留安装文件
-	RemainHistoryFile bool   `json:"remain_history_file"` //是否保留历史文件
-	Theme             string `json:"theme"`               //主题设置
-	Lang              string `json:"lang"`                //语言设置
-	GhProxy           string `json:"gh_proxy"`            //Github代理加速
-	ProxyType         string `json:"proxy_type"`          //代理类型
-	AutoUpdate        bool   `json:"auto_update"`         //自动更新
+	InstallPath            string `json:"install_path"`              //安装目录
+	VersionBranch          string `json:"version_branch"`            //版本分支
+	DownloadChannel        string `json:"download_channel"`          //下载通道
+	OldPlusVer             string `json:"old_plus_ver"`              //已安装chrome_plus版本
+	ChromePlus             string `json:"chrome_plus"`               //chrome_plus
+	RemainInstallFile      bool   `json:"remain_install_file"`       //是否保留安装文件
+	RemainHistoryFile      bool   `json:"remain_history_file"`       //是否保留历史文件
+	Theme                  string `json:"theme"`                     //主题设置
+	Lang                   string `json:"lang"`                      //语言设置
+	GhProxy                string `json:"gh_proxy"`                  //Github代理加速
+	ProxyType              string `json:"proxy_type"`                //代理类型
+	DownloadChromeViaProxy bool   `json:"download_chrome_via_proxy"` //Chrome下载是否走代理
+	AutoUpdate             bool   `json:"auto_update"`               //自动更新
 }
 
 type GithubRelease struct {

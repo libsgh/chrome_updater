@@ -1,11 +1,12 @@
 package main
 
 import (
+	"image/color"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
-	"image/color"
-	"strings"
 )
 
 type MyTheme struct {
@@ -17,13 +18,13 @@ var _ fyne.Theme = (*MyTheme)(nil)
 
 // Font return bundled font resource
 func (mt MyTheme) Font(s fyne.TextStyle) fyne.Resource {
-	lang := getString(mt.Lang)
+	/*lang := getString(mt.Lang)
 	if lang == "zh-CN" || ((lang == "System" || lang == "" || lang == "zh-TW") && DefaultLocaleName() == "zh-CN") {
 		if s.Bold {
 			return resourceAssetsFontAlibabaPuHuiTi385BoldTtf
 		}
 		return resourceAssetsFontAlibabaPuHuiTi355RegularTtf
-	}
+	}*/
 	return theme.DefaultTheme().Font(s)
 }
 func (mt *MyTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {

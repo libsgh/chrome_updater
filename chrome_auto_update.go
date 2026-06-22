@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/robfig/cron/v3"
-	"os"
-	"path"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 var cronManager = cron.New(cron.WithSeconds())
@@ -53,7 +53,10 @@ func chromeAutoUpdate(a fyne.App, win fyne.Window, data *SettingsData) {
 
 var runFlag = 0
 
+var currentData *SettingsData
+
 func addUpdateCron(data *SettingsData) {
+	currentData = data
 	spec := "0 0 0/1 * * ?"
 	_, _ = cronManager.AddFunc(spec, func() {
 		parentPath, _ := data.installPath.Get()
@@ -80,6 +83,7 @@ func addUpdateCron(data *SettingsData) {
 			ov, _ := data.oldVer.Get()
 			cv, _ := data.curVer.Get()
 			if cv != ov {
+				data.fileSizeRaw.Set(int(chromeInfo.Size))
 				autoInstall(data)
 			}
 			runFlag = 0
@@ -135,8 +139,6 @@ func autoInstall(data *SettingsData) {
 	}
 }
 func downloadChrome(url, fileName string) string {
-	fileSize, _ := getFileSize(url)
-	var wg = &sync.WaitGroup{}
 	autoDownloadProgress := widget.NewProgressBar()
 	autoDownloadProgress.SetValue(0)
 	autoDownloadProgress.TextFormatter = func() string {
@@ -144,8 +146,19 @@ func downloadChrome(url, fileName string) string {
 		downloadBtn.SetText(LoadString("AutoUpdateProgress") + percentageStr)
 		return ""
 	}
-	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 1000, fileSize, autoDownloadProgress, wg)
-	downloadedBytes = 0
-	sha1 := sumFileSHA1(fileName)
-	return sha1
+
+	dl := NewDownloader(nil, url, fileName, 16, autoDownloadProgress)
+	if currentData != nil {
+		if fs, _ := currentData.fileSizeRaw.Get(); fs > 0 {
+			dl.FileSize = int64(fs)
+		}
+	}
+	dl.Start()
+	err := <-dl.Done
+	if err != nil {
+		logger.Errorf("自动更新下载失败: %v", err)
+		return ""
+	}
+
+	return sumFileSHA1(fileName)
 }

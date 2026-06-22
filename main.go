@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
+	"runtime/debug"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"runtime/debug"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 			logger.Errorf("This is error message: %v", r)
 		}
 	}()
-	ap := app.New()
+	ap := app.NewWithID("com.github.libs.chrome")
 	//icon, _ := fyne.LoadResourceFromPath("./assets/img/chrome.ico")
 	ap.SetIcon(resourceAssetsImgChromePng)
 	//t.SetFonts("./assets/font/MiSans-Regular.ttf", "")

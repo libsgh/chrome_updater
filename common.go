@@ -6,13 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/dialog"
-	"github.com/bodgit/sevenzip"
-	"github.com/go-ole/go-ole"
-	"github.com/go-ole/go-ole/oleutil"
-	"golang.org/x/sys/windows"
+	"image/color"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,6 +19,18 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+	"github.com/bodgit/sevenzip"
+	"github.com/go-ole/go-ole"
+	"github.com/go-ole/go-ole/oleutil"
+	"golang.org/x/sys/windows"
 )
 
 var (
@@ -358,8 +364,17 @@ func isProcessExist(appPath string) bool {
 	return false
 }
 func alertInfo(message string, win fyne.Window) {
-	cnf := dialog.NewInformation(LoadString("DialogTooltipTitle"), message, win)
-	cnf.SetDismissText(LoadString("DialogCloseLabel"))
+	icon := widget.NewIcon(theme.InfoIcon())
+	label := widget.NewLabel(message)
+	label.Alignment = fyne.TextAlignCenter
+	label.Wrapping = fyne.TextWrapWord
+
+	minWidth := canvas.NewRectangle(color.Transparent)
+	minWidth.SetMinSize(fyne.NewSize(280, 0))
+
+	content := container.NewStack(minWidth,
+		container.NewBorder(nil, nil, icon, nil, label))
+	cnf := dialog.NewCustom(LoadString("DialogTooltipTitle"), LoadString("DialogCloseLabel"), content, win)
 	cnf.Show()
 }
 func alertConfirm(message string, callback func(bool), win fyne.Window) {
@@ -516,14 +531,6 @@ func GetVersion(sd *SettingsData, fileName string) string {
 	return "-"
 }
 func UnCompressBy7Zip(filePath, targetDir string) {
-	var data []byte
-	if runtime.GOARCH == "386" {
-		data = resource7z7za386Exe.Content()
-	} else if runtime.GOARCH == "amd64" {
-		data = resource7z7zaamd64Exe.Content()
-	} else if runtime.GOARCH == "arm64" {
-		data = resource7z7zaarm64Exe.Content()
-	}
 	configPath := getConfigPath()
 	zipDir := filepath.Dir(configPath)
 	if !fileExist(zipDir) {
@@ -531,6 +538,14 @@ func UnCompressBy7Zip(filePath, targetDir string) {
 	}
 	zipExePath := filepath.Join(zipDir, "7za.exe")
 	if !fileExist(zipExePath) {
+		var data []byte
+		if runtime.GOARCH == "386" {
+			data = resourceAssets7z7za386Exe.Content()
+		} else if runtime.GOARCH == "amd64" {
+			data = resourceAssets7z7zaAmd64Exe.Content()
+		} else if runtime.GOARCH == "arm64" {
+			data = resourceAssets7z7zaArm64Exe.Content()
+		}
 		err := os.WriteFile(zipExePath, data, 0644)
 		if err != nil {
 			logger.Error("write file:", err)

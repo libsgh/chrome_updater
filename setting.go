@@ -2,24 +2,25 @@ package main
 
 import (
 	"fmt"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/widget"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"syscall"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/widget"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func settingsScreen(a fyne.App, win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	installFileConfig := widget.NewCheckWithData(LoadString("BaseRemainInstallFiles"), data.remainInstallFileSettings)
 	historyVersionConfig := widget.NewCheckWithData(LoadString("BaseRemainHistoryFiles"), data.remainHistoryFileSettings)
+	downloadChromeViaProxy := widget.NewCheckWithData(LoadString("BaseDownloadChromeViaProxy"), data.downloadChromeViaProxy)
 	proxyType := widget.NewSelect([]string{"GH-PROXY", "HTTP(S)", "SOCKS5"}, func(value string) {
 		_ = data.proxyType.Set(value)
 	})
@@ -70,7 +71,7 @@ func settingsScreen(a fyne.App, win fyne.Window, data *SettingsData) fyne.Canvas
 	logger.Debug("Setting tab load success.")
 	return container.NewCenter(container.NewVBox(
 		widget.NewLabelWithStyle(LoadString("BaseSettingLabel"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		container.NewGridWithColumns(3, installFileConfig, historyVersionConfig),
+		container.NewGridWithColumns(3, installFileConfig, historyVersionConfig, downloadChromeViaProxy),
 		container.NewBorder(nil, nil, proxyType, nil, ghProxyEntry),
 		widget.NewSeparator(),
 		widget.NewLabelWithStyle(LoadString("ThemeLabel"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -107,17 +108,23 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 	parentPath := filepath.Dir(ex)
 	fileName := getFileName(url)
 	fileName = filepath.Join(parentPath, fileName)
-	fileSize, _ := getFileSize(url)
 	updaterDownloadProgress := widget.NewProgressBar()
 	updaterDownloadProgress.TextFormatter = func() string {
 		percentageStr := fmt.Sprintf("%.1f%%", updaterDownloadProgress.Value*100.0/0.9)
 		_ = btnText.Set(percentageStr)
 		return ""
 	}
-	var wg = &sync.WaitGroup{}
-	GoroutineDownload(sd, url, fileName, 4, 2*1024*1024, 500, fileSize, updaterDownloadProgress, wg)
-	if downloadedBytes > 0 {
-		downloadedBytes = 0
+
+	dl := NewDownloader(sd, url, fileName, 16, updaterDownloadProgress)
+
+	go func() {
+		err := <-dl.Done
+		if err != nil {
+			logger.Errorf("自身更新下载失败: %v", err)
+			_ = btnText.Set(LoadString("UpdaterCheckBtnLabel"))
+			return
+		}
+
 		if fileExist(fileName) {
 			updaterPath := filepath.Join(parentPath, exeName)
 			if fileExist(updaterPath) {
@@ -128,11 +135,13 @@ func UpdateSelf(a fyne.App, sd *SettingsData, url string, btnText binding.String
 				_ = os.Remove(fileName)
 				cmd := exec.Command("cmd.exe", "/C", updaterPath)
 				cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-				a.Quit()
+				fyne.DoAndWait(a.Quit)
 				_ = cmd.Start()
 			}
 		}
-	}
+	}()
+
+	dl.Start()
 }
 func chromeUpdaterNew(sd *SettingsData, updateUrl binding.String, newBtn *widget.Button) error {
 	apiUrl := "https://raw.githubusercontent.com/libsgh/ghapi-json-generator/output/v2/repos/libsgh/chrome_updater/releases%3Fper_page%3D10/data.json"

@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"fyne.io/fyne/v2/data/binding"
-	jsoniter "github.com/json-iterator/go"
-	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 	"slices"
+
+	"fyne.io/fyne/v2/data/binding"
+	jsoniter "github.com/json-iterator/go"
+	"go.uber.org/zap"
 )
 
 func getConfigPath() string {
@@ -56,6 +57,7 @@ func initData() *SettingsData {
 		sd.langSettings.Set(config.Lang)
 		sd.ghProxy.Set(config.GhProxy)
 		sd.proxyType.Set(config.ProxyType)
+		sd.downloadChromeViaProxy.Set(config.DownloadChromeViaProxy)
 		sd.autoUpdate.Set(config.AutoUpdate)
 	}
 	return sd
@@ -63,18 +65,19 @@ func initData() *SettingsData {
 
 func saveConfig(data *SettingsData) error {
 	config := Config{
-		InstallPath:       getString(data.installPath),
-		VersionBranch:     getString(data.branch),
-		DownloadChannel:   getString(data.urlKey),
-		RemainInstallFile: getBool(data.remainInstallFileSettings),
-		RemainHistoryFile: getBool(data.remainHistoryFileSettings),
-		OldPlusVer:        getString(data.oldPlusVer),
-		ChromePlus:        getString(data.chromePlus),
-		Theme:             getString(data.themeSettings),
-		Lang:              getString(data.langSettings),
-		GhProxy:           getString(data.ghProxy),
-		ProxyType:         getString(data.proxyType),
-		AutoUpdate:        getBool(data.autoUpdate),
+		InstallPath:            getString(data.installPath),
+		VersionBranch:          getString(data.branch),
+		DownloadChannel:        getString(data.urlKey),
+		RemainInstallFile:      getBool(data.remainInstallFileSettings),
+		RemainHistoryFile:      getBool(data.remainHistoryFileSettings),
+		OldPlusVer:             getString(data.oldPlusVer),
+		ChromePlus:             getString(data.chromePlus),
+		Theme:                  getString(data.themeSettings),
+		Lang:                   getString(data.langSettings),
+		GhProxy:                getString(data.ghProxy),
+		ProxyType:              getString(data.proxyType),
+		DownloadChromeViaProxy: getBool(data.downloadChromeViaProxy),
+		AutoUpdate:             getBool(data.autoUpdate),
 	}
 	jsonData, _ := jsoniter.Marshal(config)
 	configFilePath := getConfigPath()
@@ -113,6 +116,7 @@ func createSettings() *SettingsData {
 	curVer.Set("-")
 	fileSize := binding.NewString()
 	fileSize.Set("-")
+	fileSizeRaw := binding.NewInt()
 	SHA1 := binding.NewString()
 	SHA1.Set("-")
 	SHA256 := binding.NewString()
@@ -145,6 +149,7 @@ func createSettings() *SettingsData {
 	chromePlus := binding.NewString()
 	chromePlus.Set("Bush2021")
 	plusDownloadUrl := binding.NewString()
+	plusFileSizeRaw := binding.NewInt()
 	plusBtnStatus := binding.NewBool()
 	plusBtnStatus.Set(true)
 	plusProcessStatus := binding.NewBool()
@@ -153,6 +158,7 @@ func createSettings() *SettingsData {
 	ghProxy.Set("")
 	proxyType := binding.NewString()
 	proxyType.Set("GH-PROXY")
+	downloadChromeViaProxy := binding.NewBool()
 	autoUpdate := binding.NewBool()
 	autoUpdate.Set(false)
 	return &SettingsData{
@@ -161,6 +167,7 @@ func createSettings() *SettingsData {
 		branch:                    branch,
 		curVer:                    curVer,
 		fileSize:                  fileSize,
+		fileSizeRaw:               fileSizeRaw,
 		SHA1:                      SHA1,
 		SHA256:                    SHA256,
 		urlList:                   urlList,
@@ -173,6 +180,7 @@ func createSettings() *SettingsData {
 		curPlusVer:                curPlusVer,
 		chromePlus:                chromePlus,
 		plusDownloadUrl:           plusDownloadUrl,
+		plusFileSizeRaw:           plusFileSizeRaw,
 		plusBtnStatus:             plusBtnStatus,
 		plusProcessStatus:         plusProcessStatus,
 		remainInstallFileSettings: remainInstallFileSettings,
@@ -181,6 +189,7 @@ func createSettings() *SettingsData {
 		langSettings:              langSettings,
 		ghProxy:                   ghProxy,
 		proxyType:                 proxyType,
+		downloadChromeViaProxy:    downloadChromeViaProxy,
 		autoUpdate:                autoUpdate,
 	}
 }

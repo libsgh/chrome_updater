@@ -2,12 +2,6 @@ package main
 
 import (
 	"fmt"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,8 +9,15 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
@@ -87,12 +88,12 @@ func chromePlusScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	infoCard := widget.NewCard("", "", rich)
 	plusDownloadProgress = widget.NewProgressBar()
 	plusDownloadProgress.TextFormatter = func() string {
-		if plusDownloadProgress.Max*0.9 == plusDownloadProgress.Value {
+		if plusDownloadError.Load() {
+			return "下载失败，请稍后重试"
+		} else if plusDownloadProgress.Max*0.9 == plusDownloadProgress.Value {
 			return fmt.Sprintf(LoadString("PlusDownloadedMsg"))
 		} else if plusDownloadProgress.Max == plusDownloadProgress.Value {
 			return "安装完成"
-		} else if plusDownloadProgress.Value == -1 {
-			return "下载失败，请稍后重试"
 		}
 		return fmt.Sprintf(LoadString("PlusDownloadingMsg"))
 	}
@@ -113,37 +114,55 @@ func setPlusVer(data *SettingsData, ver string, releaseMap map[string]GithubRele
 	plusInfo := releaseMap[ver]
 	data.curPlusVer.Set(plusInfo.TagName)
 	data.plusDownloadUrl.Set(plusInfo.Assets[0].BrowserDownloadURL)
+	data.plusFileSizeRaw.Set(int(plusInfo.Assets[0].Size))
 }
 
 var (
 	plusDownloadProgress *widget.ProgressBar
+	plusDownloadError    atomic.Bool
 )
 
 func installPlus(data *SettingsData, win fyne.Window) {
 	url := getString(data.plusDownloadUrl)
 	data.plusBtnStatus.Set(true)
+	plusDownloadError.Store(false)
 	plusDownloadProgress.SetValue(0)
 	data.plusProcessStatus.Set(true)
 	sysInfo := getInfo()
 	parentPath, _ := data.installPath.Get()
 	fileName := getFileName(url)
 	fileName = filepath.Join(parentPath, fileName)
-	fileSize, _ := getFileSize(url)
-	var wg = &sync.WaitGroup{}
-	GoroutineDownload(data, url, fileName, 4, 100*1024, 500, fileSize, plusDownloadProgress, wg)
-	downloadedBytes = 0
-	UnCompress7zFilter(fileName, parentPath, sysInfo.goarch)
-	os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "version.dll"), path.Join(parentPath, "version.dll"))
-	if !fileExist(path.Join(parentPath, "chrome++.ini")) {
-		os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "chrome++.ini"), path.Join(parentPath, "chrome++.ini"))
+
+	dl := NewDownloader(data, url, fileName, 16, plusDownloadProgress)
+	if fs, _ := data.plusFileSizeRaw.Get(); fs > 0 {
+		dl.FileSize = int64(fs)
 	}
-	//clean tmp dir
-	os.Remove(fileName)
-	os.RemoveAll(filepath.Join(parentPath, sysInfo.goarch))
-	plusDownloadProgress.SetValue(1)
-	defer data.oldPlusVer.Set(getString(data.curPlusVer))
-	defer data.plusBtnStatus.Set(false)
-	alertInfo(LoadString("InstalledMsg"), win)
+
+	go func() {
+		err := <-dl.Done
+		if err != nil {
+			logger.Errorf("Chrome++ 下载失败: %v", err)
+			plusDownloadError.Store(true)
+			fyne.DoAndWait(func() { plusDownloadProgress.SetValue(0) })
+			data.plusProcessStatus.Set(false)
+			data.plusBtnStatus.Set(false)
+			return
+		}
+
+		UnCompress7zFilter(fileName, parentPath, sysInfo.goarch)
+		os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "version.dll"), path.Join(parentPath, "version.dll"))
+		if !fileExist(path.Join(parentPath, "chrome++.ini")) {
+			os.Rename(filepath.Join(parentPath, sysInfo.goarch, "App", "chrome++.ini"), path.Join(parentPath, "chrome++.ini"))
+		}
+		os.Remove(fileName)
+		os.RemoveAll(filepath.Join(parentPath, sysInfo.goarch))
+		fyne.DoAndWait(func() { plusDownloadProgress.SetValue(1) })
+		defer data.oldPlusVer.Set(getString(data.curPlusVer))
+		defer data.plusBtnStatus.Set(false)
+		alertInfo(LoadString("InstalledMsg"), win)
+	}()
+
+	dl.Start()
 }
 func setProxy(sd *SettingsData, reqUrl string) (*http.Client, string) {
 	ghProxy := getString(sd.ghProxy)

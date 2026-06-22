@@ -3,20 +3,22 @@ package main
 import (
 	"errors"
 	"fmt"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
+	"sync/atomic"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
@@ -28,17 +30,18 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 		installPathHandle(data)
 	}
 	showFolderPicker := func() {
-		onChosen := func(f fyne.ListableURI, err error) {
-			if err != nil {
-				fmt.Println(err)
-				return
+		folderDialog := dialog.NewFolderOpen(func(lu fyne.ListableURI, err error) {
+			if err == nil && lu != nil {
+				_ = data.installPath.Set(lu.Path())
 			}
-			if f == nil {
-				return
+		}, win)
+		currentPath, _ := data.installPath.Get()
+		if currentPath != "" {
+			if listableURI, err := storage.ListerForURI(storage.NewFileURI(currentPath)); err == nil {
+				folderDialog.SetLocation(listableURI)
 			}
-			_ = data.installPath.Set(f.Path())
 		}
-		dialog.ShowFolderOpen(onChosen, win)
+		folderDialog.Show()
 	}
 	folderBtn := widget.NewButtonWithIcon("", theme.FolderOpenIcon(), showFolderPicker)
 	data.folderEntryStatus.AddListener(binding.NewDataListener(func() {
@@ -81,12 +84,13 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 					runFlag = 1
 					if getString(data.oldVer) == "-" {
 						alertConfirm(LoadString("FirstInstallMsg"), func(b bool) {
-							execDownAndUnzip(data, downloadProgress, 0)
+							if b {
+								execDownAndUnzip(data, downloadProgress, 0)
+							}
 						}, win)
 					} else {
 						execDownAndUnzip(data, downloadProgress, 1)
 					}
-					runFlag = 0
 				}
 
 			}
@@ -163,12 +167,12 @@ func baseScreen(win fyne.Window, data *SettingsData) fyne.CanvasObject {
 	downloadProgress = widget.NewProgressBar()
 	downloadProgress.TextFormatter = func() string {
 		fs, _ := data.fileSize.Get()
-		if downloadProgress.Max*0.9 == downloadProgress.Value {
+		if downloadErrorFlag.Load() {
+			return LoadString("DownloadFailedMsg")
+		} else if downloadProgress.Max*0.9 == downloadProgress.Value {
 			return fmt.Sprintf(LoadString("DownLoadedProcessMsg"), fs)
 		} else if downloadProgress.Max == downloadProgress.Value {
 			return LoadString("InstalledMsg")
-		} else if downloadProgress.Value == -1 {
-			return LoadString("DownloadFailedMsg")
 		} else if downloadProgress.Value == 0.95 {
 			return LoadString("Download95Msg")
 		}
@@ -204,6 +208,7 @@ func syncChromeInfo(data *SettingsData, sysInfo SysInfo) error {
 	}
 	data.curVer.Set(chromeInfo.Version)
 	data.fileSize.Set(formatFileSize(chromeInfo.Size))
+	data.fileSizeRaw.Set(int(chromeInfo.Size))
 	data.urlList.Set(chromeInfo.Urls)
 	data.SHA1.Set(chromeInfo.Sha1)
 	data.SHA256.Set(chromeInfo.Sha256)
@@ -219,49 +224,66 @@ func execDownAndUnzip(data *SettingsData, downloadProgress *widget.ProgressBar, 
 	}
 	url := getDownloadUrl(data.urlList, data.urlKey)
 	parentPath, _ := data.installPath.Get()
+	downloadErrorFlag.Store(false)
 	downloadProgress.SetValue(0)
 	fileName := getFileName(url)
 	fileName = filepath.Join(parentPath, fileName)
-	fileSize, _ := getFileSize(url)
-	var wg = &sync.WaitGroup{}
-	GoroutineDownload(nil, url, fileName, 4, 1*1024*1024, 30, fileSize, downloadProgress, wg)
-	downloadedBytes = 0
-	sha1 := sumFileSHA1(fileName)
-	if v, _ := data.SHA1.Get(); v != sha1 {
-		downloadProgress.SetValue(-1)
-	} else {
-		downloadProgress.SetValue(0.95)
-		//解压覆盖
-		//UUnCompress7z(fileName, parentPath)
-		if !strings.HasSuffix(fileName, "uncompressed.exe") {
-			UnCompressBy7Zip(fileName, parentPath)
-			UnCompress7z(filepath.Join(parentPath, "chrome.7z"), parentPath)
+
+	dl := NewDownloader(data, url, fileName, 16, downloadProgress)
+	if fs, _ := data.fileSizeRaw.Get(); fs > 0 {
+		dl.FileSize = int64(fs)
+	}
+	dl.UseProxy = getBool(data.downloadChromeViaProxy)
+
+	go func() {
+		err := <-dl.Done
+		if err != nil {
+			logger.Errorf("下载失败: %v", err)
+			downloadErrorFlag.Store(true)
+			fyne.DoAndWait(func() { downloadProgress.SetValue(0) })
+			defer data.checkBtnStatus.Set(false)
+			defer data.folderEntryStatus.Set(false)
+			defer func() { runFlag = 0 }()
+			return
+		}
+
+		sha1 := sumFileSHA1(fileName)
+		if v, _ := data.SHA1.Get(); v != sha1 {
+			downloadErrorFlag.Store(true)
+			fyne.DoAndWait(func() { downloadProgress.SetValue(0) })
 		} else {
-			UnCompress7z(fileName, parentPath)
+			fyne.DoAndWait(func() { downloadProgress.SetValue(0.95) })
+			if !strings.HasSuffix(fileName, "uncompressed.exe") {
+				UnCompressBy7Zip(fileName, parentPath)
+				UnCompress7z(filepath.Join(parentPath, "chrome.7z"), parentPath)
+			} else {
+				UnCompress7z(fileName, parentPath)
+			}
+			p := filepath.Join(parentPath, "Chrome-bin")
+			targetDir := filepath.Dir(p)
+			files, _ := os.ReadDir(p)
+			for _, f := range files {
+				_ = os.Rename(filepath.Join(p, f.Name()), filepath.Join(targetDir, f.Name()))
+			}
+			_ = os.Remove(p)
+			if !strings.HasSuffix(fileName, "uncompressed.exe") {
+				_ = os.Remove(filepath.Join(parentPath, "chrome.7z"))
+			}
+			if !getBool(data.remainInstallFileSettings) {
+				_ = os.Remove(fileName)
+			}
+			if !getBool(data.remainHistoryFileSettings) {
+				_ = os.RemoveAll(filepath.Join(parentPath, getString(data.oldVer)))
+			}
+			fyne.DoAndWait(func() { downloadProgress.SetValue(1) })
+			data.oldVer.Set(getString(data.curVer))
 		}
-		p := filepath.Join(parentPath, "Chrome-bin")
-		targetDir := filepath.Dir(p)
-		files, _ := os.ReadDir(p)
-		for _, f := range files {
-			_ = os.Rename(filepath.Join(p, f.Name()), filepath.Join(targetDir, f.Name()))
-		}
-		//清理文件
-		_ = os.Remove(p)
-		if !strings.HasSuffix(fileName, "uncompressed.exe") {
-			_ = os.Remove(filepath.Join(parentPath, "chrome.7z"))
-		}
-		if !getBool(data.remainInstallFileSettings) {
-			_ = os.Remove(fileName)
-		}
-		if !getBool(data.remainHistoryFileSettings) {
-			_ = os.RemoveAll(filepath.Join(parentPath, getString(data.oldVer)))
-		}
-		downloadProgress.SetValue(1)
-		data.oldVer.Set(getString(data.curVer))
 		defer data.checkBtnStatus.Set(false)
 		defer data.folderEntryStatus.Set(false)
-		//_ = createDeskLnk(data)
-	}
+		defer func() { runFlag = 0 }()
+	}()
+
+	dl.Start()
 }
 
 func createDeskLnk(data *SettingsData) error {
@@ -295,8 +317,9 @@ func initInstallDirs(data *SettingsData) {
 }
 
 var (
-	downloadProgress *widget.ProgressBar
-	downloadBtn      *widget.Button
+	downloadProgress  *widget.ProgressBar
+	downloadBtn       *widget.Button
+	downloadErrorFlag atomic.Bool
 )
 
 // 获取下载地址
