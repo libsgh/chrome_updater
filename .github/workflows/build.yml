@@ -30,7 +30,7 @@ jobs:
       - name: Setup fyne
         run: go install github.com/fyne-io/fyne-cross@latest
       - name: Install UPX
-        uses: crazy-max/ghaction-upx@v3
+        uses: crazy-max/ghaction-upx@v4
         with:
           install-only: true
       - name: Package
@@ -56,7 +56,7 @@ jobs:
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
       - name: Release
